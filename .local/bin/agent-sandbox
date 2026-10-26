@@ -5,6 +5,9 @@
 # Usage (from a project root):
 #   agent-sandbox [workspace-dir]
 #
+# The workspace is mounted at /workspace/<name> inside the container (not the
+# host path) to avoid leaking the host's directory structure to the agent.
+#
 # Prompts for the stack image and the harness to launch. Env vars skip a
 # prompt; the config file preselects its default answer.
 # Precedence: env var > config file > prompt.
@@ -38,6 +41,7 @@ SELF="$(readlink -f "${BASH_SOURCE[0]}")"
 SANDBOX_ROOT="$(cd "$(dirname "$SELF")/../.." && pwd)"
 
 WORKSPACE_DIR="$(realpath "${1:-$PWD}")"
+WORKSPACE_NAME="$(basename "$WORKSPACE_DIR")"
 
 source "$SANDBOX_ROOT/lib/common.sh"
 source "$SANDBOX_ROOT/lib/config.sh"
@@ -148,7 +152,7 @@ trap '[ -z "$KEYRING_ENV_FILE" ] || rm -f "$KEYRING_ENV_FILE"' EXIT
     "${CACHE_ARGS[@]}" \
     "${STATE_ARGS[@]}" \
     "${ENV_FILE_ARGS[@]}" \
-    -v "$WORKSPACE_DIR:$WORKSPACE_DIR:rw" \
-    -w "$WORKSPACE_DIR" \
+    -v "$WORKSPACE_DIR:/workspace/$WORKSPACE_NAME:rw" \
+    -w "/workspace/$WORKSPACE_NAME" \
     "$IMAGE" \
     "$HARNESS_CMD"
