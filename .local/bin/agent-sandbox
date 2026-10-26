@@ -29,10 +29,11 @@
 #   REBUILD=1      rebuild the image chain first
 #   NO_NETWORK=1   no networking at all
 #   PERSIST_CACHES=1   keep tool caches across runs (named volumes)
-#   HARNESS_STATE=0    disable harness state snapshot
+#   HARNESS_STATE=1    enable harness state snapshot (default: disabled)
 #   HARNESS_STATE_ACTION=keep|reset|discard|prompt   snapshot action (default: prompt)
 #   MEMORY, CPUS   resource limits (default 8g / 4)
 #   ENV_KEYS       extra env var names to pass into the container
+#   SESSION_LOG    append session metadata to this file (audit log)
 #   AGENT_SANDBOX_CONFIG   alternative config file path
 set -euo pipefail
 
@@ -51,11 +52,35 @@ source "$SANDBOX_ROOT/lib/prompts.sh"
 source "$SANDBOX_ROOT/lib/credentials.sh"
 source "$SANDBOX_ROOT/lib/state.sh"
 
+# P1: Scan workspace for potential secrets before running the container.
+scan_workspace_secrets() {
+    local secrets
+    secrets=$(find "$WORKSPACE_DIR" -maxdepth 2 \
+        \( -name '.env' -o -name '*.pem' -o -name '*.key' \
+           -o -name 'credentials*' -o -name 'secrets*' -o -name '*.p12' \
+           -o -name 'id_rsa*' -o -name 'id_ed25519*' \) \
+        -not -path '*/.git/*' 2>/dev/null)
+    if [ -n "$secrets" ]; then
+        echo "⚠️  Warning: Potential secrets found in workspace:" >&2
+        echo "$secrets" | sed "s|^$WORKSPACE_DIR/|     |" >&2
+        echo "   The agent will have read access to these files." >&2
+        echo >&2
+    fi
+}
+
 load_config
 detect_runtime
 check_runtime
 
 echo "Using container runtime: $RUNTIME" >&2
+
+# P1: Warn about Docker on Linux (root daemon risk)
+if [ "$RUNTIME" = "docker" ] && [ "$(uname -s)" = "Linux" ]; then
+    echo "⚠️  Warning: Using Docker on Linux. Docker daemon runs as root." >&2
+    echo "   Container escape = root on host. Prefer podman (rootless):" >&2
+    echo "   sudo dnf install podman  # or apt/pacman" >&2
+    echo >&2
+fi
 
 validate_bool "NO_NETWORK" "${NO_NETWORK:-${CONFIG[no_network]:-}}"
 validate_bool "PERSIST_CACHES" "${PERSIST_CACHES:-${CONFIG[persist_caches]:-}}"
@@ -82,6 +107,10 @@ if is_true "${NO_NETWORK:-${CONFIG[no_network]:-}}"; then
     NET_ARGS=(--network none)
 else
     NET_ARGS=(--dns 1.1.1.1 --dns-search .)
+    # P1: Network warning banner
+    echo "⚠️  Network access enabled — agent can reach the internet" >&2
+    echo "   Use NO_NETWORK=1 to disable (may break AI API calls)" >&2
+    echo >&2
 fi
 
 build_env_args
@@ -112,7 +141,7 @@ fi
 #   - On [D]iscard: wipe snapshot, start empty
 # Action: HARNESS_STATE_ACTION=keep|reset|discard|prompt (default: prompt)
 STATE_ARGS=()
-if is_true "${HARNESS_STATE:-${CONFIG[harness_state]:-true}}"; then
+if is_true "${HARNESS_STATE:-${CONFIG[harness_state]:-false}}"; then
     SNAPSHOT_DIR="$HOME/.local/share/agent-sandbox/state/$HARNESS_CMD"
     STATE_ACTION="${HARNESS_STATE_ACTION:-${CONFIG[harness_state_action]:-prompt}}"
     setup_harness_state "$HARNESS_CMD" "$SNAPSHOT_DIR" "$STATE_ACTION"
@@ -126,6 +155,28 @@ TTY_ARGS=(-i)
 ENV_FILE_ARGS=()
 if [ -n "$KEYRING_ENV_FILE" ]; then
     ENV_FILE_ARGS=(--env-file "$KEYRING_ENV_FILE")
+fi
+
+# P1: Scan workspace for potential secrets
+scan_workspace_secrets
+
+# P1: Session audit log — record what was run (not full session output)
+SESSION_LOG_FILE="${SESSION_LOG:-${CONFIG[session_log]:-}}"
+if [ -n "$SESSION_LOG_FILE" ]; then
+    mkdir -p "$(dirname "$SESSION_LOG_FILE")"
+    {
+        echo "=== agent-sandbox session ==="
+        echo "Date:      $(date '+%Y-%m-%d %H:%M:%S')"
+        echo "User:      $(whoami)"
+        echo "Workspace: $WORKSPACE_DIR"
+        echo "Image:     $IMAGE"
+        echo "Harness:   $HARNESS_CMD"
+        echo "Runtime:   $RUNTIME"
+        echo "Network:   $(is_true "${NO_NETWORK:-${CONFIG[no_network]:-}}" && echo 'disabled' || echo 'enabled')"
+        echo "State:     $(is_true "${HARNESS_STATE:-${CONFIG[harness_state]:-false}}" && echo 'enabled' || echo 'disabled')"
+        echo "==============================="
+        echo
+    } >> "$SESSION_LOG_FILE"
 fi
 
 # ---- run ----

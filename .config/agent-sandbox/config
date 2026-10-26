@@ -22,9 +22,11 @@ persist_caches = false
 
 # Harness state snapshot: host state is copied to a snapshot, agent works on
 # the snapshot. Host state is NEVER modified. Chat history stays in snapshot.
+# Default: false (secure by default — no host state shared unless enabled).
+# Set to true to enable state sharing (agent can use your existing logins).
 # harness_state_action: prompt (ask each time) | keep (sync configs from host)
 #                       | reset (fresh from host) | discard (empty)
-harness_state = true
+harness_state = false
 harness_state_action = prompt
 
 # Extra env var names passed into the container, on top of the common AI
@@ -32,6 +34,10 @@ harness_state_action = prompt
 # that are always forwarded when set, e.g.
 # env_keys = MY_CUSTOM_KEY
 env_keys =
+
+# Session audit log: append metadata (date, workspace, image, harness) to this
+# file on each run. Useful for tracking what the agent accessed.
+# session_log = ~/.local/share/agent-sandbox/audit.log
 
 [~/git/dotfiles]
 stack = lua-nvim
