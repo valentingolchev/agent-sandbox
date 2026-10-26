@@ -1,0 +1,85 @@
+# Base image for the agent sandbox: hardened core tooling plus the LLM agent
+# harnesses themselves, shared by all stacks. Stack images (python, elixir,
+# clojure, ...) build FROM this one so layers are pulled once.
+#
+# Build:  podman build --build-arg UID=$(id -u) --build-arg GID=$(id -g) -t agent-sandbox:base .
+FROM quay.io/fedora/fedora-minimal:44
+
+# Core tooling a coding agent typically needs.
+# install_weak_deps=False and nodocs keep the image (and pulls) small.
+# docker-cli is the CLI only: there is no docker daemon inside the sandbox.
+RUN microdnf --setopt=install_weak_deps=False --setopt=tsflags=nodocs install -y \
+        bash git git-lfs openssh-clients curl xz \
+        python3 python3-pip ripgrep fd-find jq unzip tar gzip \
+        nodejs npm docker-cli \
+        procps-ng findutils which && \
+    microdnf clean all
+
+# docker compose (v2 standalone) in the CLI plugin dir, so both
+# `docker compose` and `docker-compose` work. Talks to a daemon via
+# DOCKER_HOST / a mounted socket; none runs inside the sandbox.
+RUN mkdir -p /usr/local/libexec/docker/cli-plugins && \
+    curl -fsSL https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64 \
+        -o /usr/local/libexec/docker/cli-plugins/docker-compose && \
+    chmod 0755 /usr/local/libexec/docker/cli-plugins/docker-compose && \
+    ln -s /usr/local/libexec/docker/cli-plugins/docker-compose /usr/local/bin/docker-compose
+
+# mise (dev tool version manager) from its official rpm repo, same as
+# install/fedora/3-terminal.sh. Tools/shims land under ~/.local/share/mise,
+# which the run script's PERSIST_CACHES ~/.local volume covers.
+RUN curl -fsSL https://mise.jdx.dev/rpm/mise.repo -o /etc/yum.repos.d/mise.repo && \
+    microdnf --setopt=install_weak_deps=False --setopt=tsflags=nodocs install -y mise && \
+    microdnf clean all
+
+# Agent harnesses, so claude/opencode/vibe/pi run in the base image and every
+# stack. Node-based ones via npm; vibe is Python-based and is installed with
+# uv system-wide (never into /home/agent -- the run script mounts a tmpfs
+# over it, which would mask it). HOME is redirected for the install so uv's
+# default tool paths land in /opt inside the image layer. Harness CLIs
+# update often: rebuild with REBUILD=1 to pick up new versions.
+# Separate RUN layers: better caching when one harness updates.
+# --ignore-scripts only for pi: its docs recommend it; the others may need
+# their post-install scripts (e.g. binary downloads, symlink setup).
+RUN npm install -g @anthropic-ai/claude-code && \
+    npm cache clean --force
+RUN npm install -g @opencode/cli && \
+    npm cache clean --force
+RUN npm install -g --ignore-scripts @earendil-works/pi-coding-agent && \
+    npm cache clean --force
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
+RUN mkdir -p /opt/uv-home && \
+    HOME=/opt/uv-home uv tool install mistral-vibe && \
+    rm -rf /opt/uv-home/.cache
+
+# /opt/uv-home/.local/bin for the vibe CLI; mise shims so `mise install`ed
+# tools resolve without `mise activate` (shims are created on demand under
+# the home dir, persisted via the PERSIST_CACHES ~/.local volume).
+ENV PATH=/opt/uv-home/.local/bin:/home/agent/.local/share/mise/shims:$PATH
+
+# Non-root user. Pass host UID/GID so workspace file ownership maps cleanly:
+#   podman build --build-arg UID=$(id -u) --build-arg GID=$(id -g) ...
+ARG UID=1000
+ARG GID=1000
+RUN groupadd -g ${GID} agent && \
+    useradd -m -u ${UID} -g ${GID} -s /bin/bash agent && \
+    mkdir -p /home/agent/.local/share /home/agent/.local/state \
+             /home/agent/.local/bin /home/agent/.config /home/agent/.cache && \
+    chown -R agent:agent /home/agent
+
+# The run script mounts a tmpfs over /home/agent with copy-up from this
+# image: pre-creating the XDG parent dirs agent-owned above means the
+# runtime home has writable parents, so harnesses can mkdir siblings next
+# to the bind-mounted state dirs (which would otherwise be root-owned
+# podman-created parents the agent cannot write into).
+
+ENV PYTHONUNBUFFERED=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    NPM_CONFIG_UPDATE_NOTIFIER=false \
+    NPM_CONFIG_FUND=false \
+    NPM_CONFIG_AUDIT=false \
+    HOME=/home/agent
+
+WORKDIR /workspace
+USER agent
+
+CMD ["/bin/bash"]
