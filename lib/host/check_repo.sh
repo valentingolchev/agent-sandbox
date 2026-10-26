@@ -14,6 +14,7 @@ for f in common.sh config.sh runtime.sh stacks.sh prompts.sh credentials.sh; do
 done
 
 [ -f "$root/base/Containerfile" ] || { echo "  Missing: base/Containerfile" >&2; ok=1; }
+[ -f "$root/.config/agent-sandbox/config.template" ] || { echo "  Missing: .config/agent-sandbox/config.template" >&2; ok=1; }
 
 if [ $ok -eq 1 ]; then
     echo

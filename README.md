@@ -17,8 +17,11 @@ Run LLM coding agents (claude, opencode, pi, vibe) in hardened containers.
 ./install.sh
 ```
 
-This checks for required tools, stows the `agent-sandbox` script into
-`~/.local/bin`, and validates your container runtime.
+This checks for required tools, symlinks `agent-sandbox` into
+`~/.local/bin`, creates a default config at `~/.config/agent-sandbox/config`
+from `.config/agent-sandbox/config.template` (with a per-project override
+for this repo), and validates your container runtime. The config is a
+regular file — edit it freely, it is not managed by the repo.
  
 Make sure `~/.local/bin` is in your `PATH`:
 
