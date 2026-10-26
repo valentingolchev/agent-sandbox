@@ -10,3 +10,9 @@
 # IDE
 .vscode/
 .idea/
+
+# Container build artifacts (never commit)
+*.tar
+*.tar.gz
+
+

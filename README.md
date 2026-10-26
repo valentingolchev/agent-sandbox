@@ -58,59 +58,79 @@ stack = lua-nvim
 
 | Variable | Description |
 |----------|-------------|
-| `AGENT_IMAGE` | Stack tag, e.g. `agent-sandbox:python` (skips prompt) |
+| `AGENT_IMAGE` | Stack tag, e.g. `agent-sandbox:python` or `agent-sandbox:python-claude` (skips prompt) |
 | `HARNESS` | `claude`, `opencode`, `vibe`, `pi`, `manual` (skips prompt) |
 | `CONTAINER_RUNTIME` | `podman` or `docker` (overrides auto-detection) |
 | `REBUILD=1` | Rebuild the image chain first |
 | `NO_NETWORK=1` | No networking at all |
 | `PERSIST_CACHES=1` | Keep tool caches across runs (named volumes) |
-| `HARNESS_STATE=0` | Don't share host harness logins/config |
+| `HARNESS_STATE=1` | Enable harness state snapshot (default: disabled) |
+| `HARNESS_STATE_ACTION` | `keep`, `reset`, `discard`, or `prompt` (default: prompt) |
+| `SESSION_LOG` | Append session metadata to this file (audit log) |
 | `MEMORY`, `CPUS` | Resource limits (default 8g / 4) |
 | `ENV_KEYS` | Extra env var names to pass into the container |
 | `AGENT_SANDBOX_CONFIG` | Alternative config file path |
 
 ## Stacks
 
-Auto-discovered from `stacks/*/Containerfile`:
+Auto-discovered from `stacks/*/Containerfile`. Images are composed ad hoc:
+`base-tools` + `<harness>` + `<stack chain>`, tagged as `agent-sandbox:<stack>-<harness>`.
+Manual mode (no harness) skips the harness layer: `agent-sandbox:base-tools` for base,
+`agent-sandbox:<stack>-manual` for language stacks.
 
-| Stack | Description |
-|-------|-------------|
-| `base` | Base image with core tooling and harnesses |
-| `python` | Python development environment |
-| `node` | Node.js development environment |
-| `rust` | Rust development environment |
-| `elixir` | Elixir development environment |
-| `lua-nvim` | Lua + Neovim for dotfiles development |
-| `clojure` | JDK 21 + Clojure CLI |
-| `web-cljs` | Clojure + pnpm for shadow-cljs |
-| `react-native-cljs` | web-cljs + full JDK for Android |
+| Stack | Description | Image example |
+|-------|-------------|---------------|
+| `base` | Core tooling + harness only | `agent-sandbox:base-tools-claude` |
+| `python` | Python development environment | `agent-sandbox:python-claude` |
+| `node` | Node.js development environment | `agent-sandbox:node-opencode` |
+| `rust` | Rust development environment | `agent-sandbox:rust-vibe` |
+| `elixir` | Elixir development environment | `agent-sandbox:elixir-claude` |
+| `lua-nvim` | Lua + Neovim for dotfiles development | `agent-sandbox:lua-nvim-pi` |
+| `clojure` | JDK 21 + Clojure CLI | `agent-sandbox:clojure-claude` |
+| `web-cljs` | Clojure + pnpm for shadow-cljs | `agent-sandbox:web-cljs-claude` |
+| `react-native-cljs` | web-cljs + full JDK for Android | `agent-sandbox:react-native-cljs-vibe` |
 
 ## Harnesses
 
-| Harness | Command |
-|---------|---------|
-| `claude` | `claude` (Anthropic Claude Code) |
-| `opencode` | `opencode` |
-| `vibe` | `vibe` (Mistral Vibe) |
-| `pi` | `pi` (@earendil-works/pi-coding-agent) |
-| `manual` | `/bin/bash` (shell only) |
+Harnesses are installed ad hoc — only the selected harness is in the image.
+Install scripts are in `base/harness/<name>.sh`.
+
+| Harness | Command | Install script |
+|---------|---------|----------------|
+| `claude` | `claude` (Anthropic Claude Code) | `base/harness/claude.sh` |
+| `opencode` | `opencode` | `base/harness/opencode.sh` |
+| `vibe` | `vibe` (Mistral Vibe) | `base/harness/vibe.sh` |
+| `pi` | `pi` (@earendil-works/pi-coding-agent) | `base/harness/pi.sh` |
+| `manual` | `/bin/bash` (shell only) | — (no harness installed) |
 
 ## How it works
 
 1. **Runtime detection** — podman (rootless) or docker, auto-detected
-2. **Stack selection** — fzf fuzzy finder or numbered menu
-3. **Image build** — builds the stack chain if needed (cached layers)
+2. **Stack & harness selection** — fzf fuzzy finder or numbered menu
+3. **Ad hoc image composition** — generates and builds the image on demand:
+   - `base-tools` (core tooling, no harnesses)
+   - `base-tools-<harness>` (adds the selected harness)
+   - `<stack>-<harness>` (adds language stack on top)
+   - Layers are cached — only unique layers are stored
 4. **Container run** — hardened: read-only, dropped caps, no new privs,
    pids limit, tmpfs for `/tmp` and `/home/agent`
 
+Images are stored locally on the host (never in git) and tagged as
+`agent-sandbox:<stack>-<harness>`. List them with `podman images`.
+
 ## Security
 
+- **Ad hoc composition** — only the selected harness is installed (smaller attack surface)
 - Read-only root filesystem
 - All capabilities dropped (`--cap-drop=ALL`)
 - `no-new-privileges` security option
 - PID limit (512)
 - SELinux label disable on SELinux-enabled hosts
 - API keys passed via `--env-file` (never on command line)
+- API keys scoped to active harness only
+- Harness state snapshot — host state never modified
+- Workspace mounted at `/workspace/<name>` — host path hidden
+- Package versions pinned in all Containerfiles
 
 ## License
 
