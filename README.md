@@ -11,17 +11,33 @@ Run LLM coding agents (claude, opencode, pi, vibe) in hardened containers.
 
 ## Installation
 
+### Option A: Install (recommended)
+
 ```bash
 ./install.sh
 ```
 
 This checks for required tools, stows the `agent-sandbox` script into
 `~/.local/bin`, and validates your container runtime.
-
+ 
 Make sure `~/.local/bin` is in your `PATH`:
 
 ```bash
 export PATH="$HOME/.local/bin:$PATH"
+```
+
+### Option B: Run from source (no install)
+
+```bash
+./run.sh
+```
+
+Runs `agent-sandbox` directly from the repo checkout. No stow, no PATH
+changes needed. Requires podman or docker (same as the installed version).
+All arguments and env vars pass through, e.g.:
+
+```bash
+HARNESS=claude ./run.sh ~/projects/my-app
 ```
 
 ## Usage
