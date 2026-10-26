@@ -1,0 +1,17 @@
+# Clojure backend stack: headless JDK 21 + the official Clojure CLI installer.
+# (headless, not devel, keeps this layer lean; the react-native-cljs stack
+# adds the full JDK on top where Gradle needs it.)
+# Build:  podman build -t agent-sandbox:clojure .
+FROM agent-sandbox:base
+USER root
+
+RUN microdnf --setopt=install_weak_deps=False --setopt=tsflags=nodocs install -y \
+        java-21-openjdk-headless && \
+    microdnf clean all && \
+    curl -sSL -o /tmp/linux-install.sh \
+        https://github.com/clojure/brew-install/releases/latest/download/linux-install.sh && \
+    bash /tmp/linux-install.sh && \
+    rm -f /tmp/linux-install.sh
+
+USER agent
+CMD ["/bin/bash"]

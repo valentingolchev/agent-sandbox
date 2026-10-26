@@ -1,0 +1,11 @@
+# Web front-end stack for React + ClojureScript: clojure stack + pnpm for
+# shadow-cljs / nbb / JS toolchains (nodejs and npm come from the base).
+# Build:  podman build -t agent-sandbox:web-cljs .
+FROM agent-sandbox:clojure
+USER root
+
+RUN npm install -g pnpm && \
+    npm cache clean --force
+
+USER agent
+CMD ["/bin/bash"]

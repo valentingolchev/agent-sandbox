@@ -1,0 +1,18 @@
+# React Native + ClojureScript stack: web-cljs plus the full JDK, which
+# Gradle needs for Android builds (the clojure layer only ships a headless
+# JDK).
+#
+# The Android SDK is deliberately NOT baked in: it is huge and its layout is
+# managed by cmdline-tools. If a project needs Android builds, mount an SDK
+# dir from the host, e.g.:
+#   podman ... -v $HOME/Android/Sdk:/opt/android-sdk:rw -e ANDROID_HOME=/opt/android-sdk
+# Build:  podman build -t agent-sandbox:react-native-cljs .
+FROM agent-sandbox:web-cljs
+USER root
+
+RUN microdnf --setopt=install_weak_deps=False --setopt=tsflags=nodocs install -y \
+        java-21-openjdk-devel && \
+    microdnf clean all
+
+USER agent
+CMD ["/bin/bash"]
