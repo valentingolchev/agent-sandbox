@@ -1,0 +1,15 @@
+# Lua/Neovim plugin development stack: Neovim, Lua/LuaJIT, LuaRocks and
+# native build tooling for compiling rockspec C modules and treesitter
+# parsers.
+# Build:  podman build -t agent-sandbox:lua-nvim .
+FROM agent-sandbox:base
+USER root
+
+RUN microdnf --setopt=install_weak_deps=False --setopt=tsflags=nodocs install -y \
+        neovim lua luajit luarocks \
+        lua-devel luajit-devel \
+        gcc make && \
+    microdnf clean all
+
+USER agent
+CMD ["/bin/bash"]

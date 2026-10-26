@@ -1,0 +1,21 @@
+# Rust stack: base + rustup-managed toolchain installed system-wide under /opt.
+# The rustup proxies (cargo/rustc) are installed into /opt/cargo/bin with the
+# build-time CARGO_HOME; the runtime CARGO_HOME below then redirects
+# downloads/registry to the agent home (runtime tmpfs, or a persistent volume
+# with PERSIST_CACHES=1) so the read-only image layer stays pristine.
+# Build:  podman build -t agent-sandbox:rust .
+FROM agent-sandbox:base
+USER root
+
+ENV RUSTUP_HOME=/opt/rustup \
+    CARGO_HOME=/opt/cargo
+
+RUN curl -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path --profile minimal \
+        --default-toolchain stable && \
+    chmod -R a+rX /opt/rustup /opt/cargo
+
+ENV CARGO_HOME=/home/agent/.cargo \
+    PATH=/opt/cargo/bin:$PATH
+
+USER agent
+CMD ["/bin/bash"]

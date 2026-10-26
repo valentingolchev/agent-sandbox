@@ -1,0 +1,12 @@
+# Python stack: base (which already ships uv) plus native build tools for
+# wheels that need compiling.
+# Build:  podman build -t agent-sandbox:python .
+FROM agent-sandbox:base
+USER root
+
+RUN microdnf --setopt=install_weak_deps=False --setopt=tsflags=nodocs install -y \
+        gcc gcc-c++ make && \
+    microdnf clean all
+
+USER agent
+CMD ["/bin/bash"]
