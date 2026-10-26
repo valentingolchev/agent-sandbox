@@ -1,0 +1,84 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  # Lint and syntax-check all shell scripts
+  lint:
+    name: Lint shell scripts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install shellcheck
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+
+      - name: Shellcheck
+        run: |
+          find . -name '*.sh' -not -path './.git/*' -print0 | \
+            xargs -0 shellcheck --severity=warning
+
+      - name: Bash syntax check
+        run: |
+          find . -name '*.sh' -not -path './.git/*' -print0 | \
+            xargs -0 -I {} bash -n {}
+          # Also check the main script (no .sh extension)
+          bash -n .local/bin/agent-sandbox
+          bash -n install.sh
+
+  # Build base container image to verify Containerfile
+  build-base:
+    name: Build base image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build base image
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y podman
+          podman build \
+            --build-arg UID=1000 --build-arg GID=1000 \
+            -t agent-sandbox:base-ci \
+            base/
+
+      - name: Verify image exists
+        run: podman images agent-sandbox:base-ci
+
+  # Build all stack images (depends on base)
+  build-stacks:
+    name: Build stack images
+    runs-on: ubuntu-latest
+    needs: build-base
+    strategy:
+      matrix:
+        stack: [python, node, rust, elixir, lua-nvim, clojure, web-cljs, react-native-cljs]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install podman
+        run: sudo apt-get update && sudo apt-get install -y podman
+
+      - name: Build base image (dependency)
+        run: |
+          podman build \
+            --build-arg UID=1000 --build-arg GID=1000 \
+            -t agent-sandbox:base \
+            base/
+
+      - name: Build stack image
+        run: |
+          podman build \
+            --build-arg UID=1000 --build-arg GID=1000 \
+            -t agent-sandbox:${{ matrix.stack }}-ci \
+            stacks/${{ matrix.stack }}/
+
+      - name: Verify image exists
+        run: podman images agent-sandbox:${{ matrix.stack }}-ci
