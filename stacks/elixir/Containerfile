@@ -1,8 +1,9 @@
 # Erlang/Elixir stack: OTP, Elixir, rebar3 and Phoenix prerequisites.
 # inotify-tools is needed by Phoenix live-reload on Linux; gcc covers native
 # NIF dependencies (C only -- g++ dropped to keep the layer lean).
-# Build:  podman build -t agent-sandbox:elixir .
-FROM agent-sandbox:base
+# Build:  podman build -t agent-sandbox:elixir-<harness> .
+ARG BASE_IMAGE=agent-sandbox:base-tools
+FROM ${BASE_IMAGE}
 USER root
 
 RUN microdnf --setopt=install_weak_deps=False --setopt=tsflags=nodocs install -y \

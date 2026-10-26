@@ -3,8 +3,9 @@
 # build-time CARGO_HOME; the runtime CARGO_HOME below then redirects
 # downloads/registry to the agent home (runtime tmpfs, or a persistent volume
 # with PERSIST_CACHES=1) so the read-only image layer stays pristine.
-# Build:  podman build -t agent-sandbox:rust .
-FROM agent-sandbox:base
+# Build:  podman build -t agent-sandbox:rust-<harness> .
+ARG BASE_IMAGE=agent-sandbox:base-tools
+FROM ${BASE_IMAGE}
 USER root
 
 ENV RUSTUP_HOME=/opt/rustup \

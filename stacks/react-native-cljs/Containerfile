@@ -6,8 +6,10 @@
 # managed by cmdline-tools. If a project needs Android builds, mount an SDK
 # dir from the host, e.g.:
 #   podman ... -v $HOME/Android/Sdk:/opt/android-sdk:rw -e ANDROID_HOME=/opt/android-sdk
-# Build:  podman build -t agent-sandbox:react-native-cljs .
-FROM agent-sandbox:web-cljs
+# Build:  podman build --build-arg BASE_IMAGE=agent-sandbox:web-cljs-<harness> -t agent-sandbox:react-native-cljs-<harness> .
+# (BASE_IMAGE is always set by the build system; default is a safe fallback)
+ARG BASE_IMAGE=agent-sandbox:base-tools
+FROM ${BASE_IMAGE}
 USER root
 
 RUN microdnf --setopt=install_weak_deps=False --setopt=tsflags=nodocs install -y \

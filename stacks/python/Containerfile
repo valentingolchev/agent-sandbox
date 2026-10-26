@@ -1,7 +1,8 @@
 # Python stack: base (which already ships uv) plus native build tools for
 # wheels that need compiling.
-# Build:  podman build -t agent-sandbox:python .
-FROM agent-sandbox:base
+# Build:  podman build -t agent-sandbox:python-<harness> .
+ARG BASE_IMAGE=agent-sandbox:base-tools
+FROM ${BASE_IMAGE}
 USER root
 
 RUN microdnf --setopt=install_weak_deps=False --setopt=tsflags=nodocs install -y \

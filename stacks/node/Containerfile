@@ -1,7 +1,8 @@
 # Node stack: base (which already ships nodejs, npm and the harness CLIs)
 # plus pnpm.
-# Build:  podman build -t agent-sandbox:node .
-FROM agent-sandbox:base
+# Build:  podman build -t agent-sandbox:node-<harness> .
+ARG BASE_IMAGE=agent-sandbox:base-tools
+FROM ${BASE_IMAGE}
 USER root
 
 RUN npm install -g pnpm && \

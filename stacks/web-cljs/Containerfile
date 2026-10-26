@@ -1,7 +1,9 @@
 # Web front-end stack for React + ClojureScript: clojure stack + pnpm for
 # shadow-cljs / nbb / JS toolchains (nodejs and npm come from the base).
-# Build:  podman build -t agent-sandbox:web-cljs .
-FROM agent-sandbox:clojure
+# Build:  podman build --build-arg BASE_IMAGE=agent-sandbox:clojure-<harness> -t agent-sandbox:web-cljs-<harness> .
+# (BASE_IMAGE is always set by the build system; default is a safe fallback)
+ARG BASE_IMAGE=agent-sandbox:base-tools
+FROM ${BASE_IMAGE}
 USER root
 
 RUN npm install -g pnpm && \
