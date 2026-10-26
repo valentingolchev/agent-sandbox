@@ -80,6 +80,7 @@ jobs:
             echo "FROM agent-sandbox:base-tools"
             echo "USER root"
             cat base/harness/claude.sh
+            echo "RUN chown -R agent:agent /home/agent"
             echo "USER agent"
           } > "$tmpfile"
 

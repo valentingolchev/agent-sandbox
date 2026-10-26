@@ -7,7 +7,8 @@ FROM ${BASE_IMAGE}
 USER root
 
 RUN npm install -g pnpm && \
-    npm cache clean --force
+    npm cache clean --force && \
+    chown -R agent:agent /home/agent
 
 USER agent
 CMD ["/bin/bash"]

@@ -114,6 +114,9 @@ build_base_with_harness() {
         echo "FROM agent-sandbox:base-tools"
         echo "USER root"
         cat "$harness_script"
+        # Harness installs (npm, uv) create dirs in $HOME as root.
+        # Fix ownership so the agent user can write at runtime (tmpfs copy-up).
+        echo "RUN chown -R agent:agent /home/agent"
         echo "USER agent"
     } > "$tmpfile"
 
