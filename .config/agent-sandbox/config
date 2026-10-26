@@ -1,0 +1,39 @@
+# agent-sandbox machine defaults.
+# Stowed from the dotfiles repo; edit per machine if needed, or point
+# AGENT_SANDBOX_CONFIG at a file outside the repo.
+#
+# Global keys below. [path] sections override them for workspaces under
+# that path (longest matching prefix wins; ~ expands to $HOME).
+
+stack = base
+harness = manual
+
+# Container runtime: podman (default on Linux) or docker.
+# Auto-detected if unset. Set CONTAINER_RUNTIME env var to override.
+# On macOS, use docker (Docker Desktop). On Linux, podman is preferred
+# (rootless, no daemon); docker works if the daemon is running.
+# runtime = podman
+
+memory = 8g
+cpus = 4
+
+no_network = false
+persist_caches = false
+
+# Share host harness logins/config (claude/opencode/vibe/pi) with the sandbox.
+harness_state = true
+
+# Extra env var names passed into the container, on top of the common AI
+# provider keys (ANTHROPIC_API_KEY, OPENAI_API_KEY, MISTRAL_API_KEY, ...)
+# that are always forwarded when set, e.g.
+# env_keys = MY_CUSTOM_KEY
+env_keys =
+
+[~/git/dotfiles]
+stack = lua-nvim
+
+# Example per-project overrides:
+# [~/work/acme-backend]
+# stack = elixir
+# harness = vibe
+# memory = 16g
