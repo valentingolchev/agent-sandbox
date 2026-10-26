@@ -1,0 +1,154 @@
+#!/usr/bin/env bash
+# agent-sandbox: run an LLM coding agent inside a hardened container.
+# Works with podman (rootless, Linux) or docker (Linux daemon, macOS Desktop).
+#
+# Usage (from a project root):
+#   agent-sandbox [workspace-dir]
+#
+# Prompts for the stack image and the harness to launch. Env vars skip a
+# prompt; the config file preselects its default answer.
+# Precedence: env var > config file > prompt.
+#
+# Config: ~/.config/agent-sandbox/config ("key = value", [path] sections for
+# per-project overrides). Logic lives in lib/ beside this script:
+#   common.sh       helpers (trim, bools, die)
+#   config.sh       config file parsing
+#   runtime.sh      container runtime detection (podman/docker)
+#   stacks.sh       stack auto-discovery + image builds
+#   prompts.sh      interactive pickers
+#   credentials.sh  env var / keyring propagation
+#
+# Env vars:
+#   CONTAINER_RUNTIME  podman | docker        (overrides auto-detection)
+#   AGENT_IMAGE    stack tag, e.g. agent-sandbox:elixir   (skips prompt)
+#   HARNESS        claude | opencode | vibe | pi | manual  (skips prompt)
+#   REBUILD=1      rebuild the image chain first
+#   NO_NETWORK=1   no networking at all
+#   PERSIST_CACHES=1   keep tool caches across runs (named volumes)
+#   HARNESS_STATE=0    do not share host harness logins/config
+#   MEMORY, CPUS   resource limits (default 8g / 4)
+#   ENV_KEYS       extra env var names to pass into the container
+#   AGENT_SANDBOX_CONFIG   alternative config file path
+set -euo pipefail
+
+# Follow the ~/.local/bin symlink back to the repo (libs + build contexts).
+SELF="$(readlink -f "${BASH_SOURCE[0]}")"
+SANDBOX_ROOT="$(cd "$(dirname "$SELF")/../.." && pwd)"
+
+WORKSPACE_DIR="$(realpath "${1:-$PWD}")"
+
+source "$SANDBOX_ROOT/lib/common.sh"
+source "$SANDBOX_ROOT/lib/config.sh"
+source "$SANDBOX_ROOT/lib/runtime.sh"
+source "$SANDBOX_ROOT/lib/stacks.sh"
+source "$SANDBOX_ROOT/lib/prompts.sh"
+source "$SANDBOX_ROOT/lib/credentials.sh"
+
+load_config
+detect_runtime
+check_runtime
+
+echo "Using container runtime: $RUNTIME" >&2
+
+validate_bool "NO_NETWORK" "${NO_NETWORK:-${CONFIG[no_network]:-}}"
+validate_bool "PERSIST_CACHES" "${PERSIST_CACHES:-${CONFIG[persist_caches]:-}}"
+validate_bool "HARNESS_STATE" "${HARNESS_STATE:-${CONFIG[harness_state]:-}}"
+
+# Pick stack and harness before the (potentially slow) first build.
+stack_name="$(choose_stack)"
+IMAGE="agent-sandbox:$stack_name"
+HARNESS_CMD="$(choose_harness)"
+
+ensure_image "$stack_name"
+
+# ---- container args ----
+
+# Runtime-specific user mapping (userns=keep-id for podman, --user for docker).
+mapfile -t USER_ARGS < <(user_args)
+
+# SELinux label disable on SELinux-enabled Linux hosts.
+mapfile -t SECURITY_OPTS < <(security_opts)
+
+# Network: podman rootless and docker both isolate userland networking;
+# --dns avoids using the host's resolver. No DNS flags with --network none.
+if is_true "${NO_NETWORK:-${CONFIG[no_network]:-}}"; then
+    NET_ARGS=(--network none)
+else
+    NET_ARGS=(--dns 1.1.1.1 --dns-search .)
+fi
+
+build_env_args
+retrieve_keyring_secrets
+
+# Opt-in persistent tool caches: faster repeat sessions, at the cost of
+# state surviving across runs.
+CACHE_ARGS=()
+if is_true "${PERSIST_CACHES:-${CONFIG[persist_caches]:-}}"; then
+    CACHE_ARGS+=(
+        -v agent-local:/home/agent/.local/share/mise
+        -v agent-npm:/home/agent/.npm
+        -v agent-pip:/home/agent/.cache/pip
+        -v agent-uv:/home/agent/.cache/uv
+        -v agent-cargo:/home/agent/.cargo
+        -v agent-luarocks:/home/agent/.luarocks
+        -v agent-elixir:/home/agent/.mix
+        -v agent-hex:/home/agent/.hex
+        -v agent-m2:/home/agent/.m2
+    )
+fi
+
+# Share host harness state (logins, config) read-write, so host logins work
+# in the sandbox. Only existing dirs are mounted.
+STATE_ARGS=()
+if is_true "${HARNESS_STATE:-${CONFIG[harness_state]:-true}}"; then
+    state_mount() {
+        [[ -e "$1" ]] || return 0   # missing host dir is not an error
+        STATE_ARGS+=(-v "$1:$2:rw")
+    }
+    state_mount "$HOME/.vibe" /home/agent/.vibe
+    state_mount "$HOME/.claude" /home/agent/.claude
+    state_mount "$HOME/.claude.json" /home/agent/.claude.json
+    state_mount "$HOME/.config/opencode" /home/agent/.config/opencode
+    state_mount "$HOME/.local/share/opencode" /home/agent/.local/share/opencode
+    state_mount "$HOME/.pi" /home/agent/.pi
+    state_mount "$HOME/.config/pi" /home/agent/.config/pi
+fi
+
+# -it needs a TTY on both ends; scripted runs fall back to -i.
+TTY_ARGS=(-i)
+[[ -t 0 && -t 1 ]] && TTY_ARGS=(-it)
+
+# Keyring secret goes in via --env-file (never on the command line).
+ENV_FILE_ARGS=()
+if [ -n "$KEYRING_ENV_FILE" ]; then
+    ENV_FILE_ARGS=(--env-file "$KEYRING_ENV_FILE")
+fi
+
+# ---- run ----
+
+trap '[ -z "$KEYRING_ENV_FILE" ] || rm -f "$KEYRING_ENV_FILE"' EXIT
+
+"$RUNTIME" run "${TTY_ARGS[@]}" --rm \
+    --pull=never \
+    --name "agent-sandbox-$$" \
+    "${USER_ARGS[@]}" \
+    --init \
+    --no-hosts \
+    --read-only \
+    --tmpfs /tmp:rw,size=2g \
+    --tmpfs /home/agent:rw,size=1g,mode=1777 \
+    --cap-drop=ALL \
+    --security-opt no-new-privileges \
+    "${SECURITY_OPTS[@]}" \
+    --pids-limit 512 \
+    --memory "${MEMORY:-${CONFIG[memory]:-8g}}" \
+    --cpus "${CPUS:-${CONFIG[cpus]:-4}}" \
+    "${NET_ARGS[@]}" \
+    "${ENV_ARGS[@]}" \
+    "${CACHE_ARGS[@]}" \
+    "${STATE_ARGS[@]}" \
+    "${ENV_FILE_ARGS[@]}" \
+    -v "$WORKSPACE_DIR:$WORKSPACE_DIR:rw" \
+    -w "$WORKSPACE_DIR" \
+    "$IMAGE" \
+    "$HARNESS_CMD"
