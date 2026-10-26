@@ -24,7 +24,8 @@
 #
 # Env vars:
 #   CONTAINER_RUNTIME  podman | docker        (overrides auto-detection)
-#   AGENT_IMAGE    stack tag, e.g. agent-sandbox:elixir   (skips prompt)
+#   AGENT_IMAGE    stack tag, e.g. agent-sandbox:elixir or agent-sandbox:elixir-claude
+#                  (harness suffix optional, stripped if present)
 #   HARNESS        claude | opencode | vibe | pi | manual  (skips prompt)
 #   REBUILD=1      rebuild the image chain first
 #   NO_NETWORK=1   no networking at all
@@ -88,10 +89,13 @@ validate_bool "HARNESS_STATE" "${HARNESS_STATE:-${CONFIG[harness_state]:-}}"
 
 # Pick stack and harness before the (potentially slow) first build.
 stack_name="$(choose_stack)"
-IMAGE="agent-sandbox:$stack_name"
-HARNESS_CMD="$(choose_harness)"
+HARNESS_NAME="$(choose_harness)"
+HARNESS_CMD="$(resolve_harness "$HARNESS_NAME")"
+IMAGE="$(image_name_for "$stack_name" "$HARNESS_NAME")"
 
-ensure_image "$stack_name"
+echo "Image: $IMAGE   Workspace: $WORKSPACE_DIR" >&2
+
+ensure_image "$stack_name" "$HARNESS_NAME"
 
 # ---- container args ----
 
@@ -142,9 +146,9 @@ fi
 # Action: HARNESS_STATE_ACTION=keep|reset|discard|prompt (default: prompt)
 STATE_ARGS=()
 if is_true "${HARNESS_STATE:-${CONFIG[harness_state]:-false}}"; then
-    SNAPSHOT_DIR="$HOME/.local/share/agent-sandbox/state/$HARNESS_CMD"
+    SNAPSHOT_DIR="$HOME/.local/share/agent-sandbox/state/$HARNESS_NAME"
     STATE_ACTION="${HARNESS_STATE_ACTION:-${CONFIG[harness_state_action]:-prompt}}"
-    setup_harness_state "$HARNESS_CMD" "$SNAPSHOT_DIR" "$STATE_ACTION"
+    setup_harness_state "$HARNESS_NAME" "$SNAPSHOT_DIR" "$STATE_ACTION"
 fi
 
 # -it needs a TTY on both ends; scripted runs fall back to -i.
@@ -170,7 +174,7 @@ if [ -n "$SESSION_LOG_FILE" ]; then
         echo "User:      $(whoami)"
         echo "Workspace: $WORKSPACE_DIR"
         echo "Image:     $IMAGE"
-        echo "Harness:   $HARNESS_CMD"
+        echo "Harness:   $HARNESS_NAME"
         echo "Runtime:   $RUNTIME"
         echo "Network:   $(is_true "${NO_NETWORK:-${CONFIG[no_network]:-}}" && echo 'disabled' || echo 'enabled')"
         echo "State:     $(is_true "${HARNESS_STATE:-${CONFIG[harness_state]:-false}}" && echo 'enabled' || echo 'disabled')"

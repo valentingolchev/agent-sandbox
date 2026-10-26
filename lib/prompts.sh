@@ -7,7 +7,7 @@
 # falls back to a numbered menu otherwise.
 
 # All supported harnesses. Keep in sync with resolve_harness and the
-# Containerfile installs (base/Containerfile).
+# harness install scripts (base/harness/*.sh).
 HARNESSES=(claude opencode vibe pi manual)
 
 has_fzf() {
@@ -96,7 +96,7 @@ resolve_harness() {
 
 is_valid_harness() {
     case "$1" in
-        claude|opencode|vibe|pi|manual|bash|shell) return 0 ;;
+        claude|opencode|vibe|pi|manual) return 0 ;;
         *) return 1 ;;
     esac
 }
@@ -106,6 +106,16 @@ choose_stack() {
     if [[ -n "$requested" ]]; then
         choice="${requested#agent-sandbox:}"
         choice="${choice%%:*}"
+        # Strip harness suffix if present (e.g., python-claude → python).
+        # Only strip if the result is a known stack (safe for lua-nvim, web-cljs, etc.)
+        local h stripped
+        for h in claude opencode vibe pi; do
+            stripped="${choice%-${h}}"
+            if [[ -n "${STACK_PARENT[$stripped]+x}" ]]; then
+                choice="$stripped"
+                break
+            fi
+        done
         [[ -n "${STACK_PARENT[$choice]+x}" ]] ||
             die "Unknown stack '$requested'. Known: ${STACKS[*]}"
         echo "$choice"
@@ -121,9 +131,13 @@ choose_stack() {
 choose_harness() {
     local requested="${HARNESS:-}"
     if [[ -n "$requested" ]]; then
+        # Normalize legacy aliases
+        case "$requested" in
+            bash|shell) requested="manual" ;;
+        esac
         is_valid_harness "$requested" ||
             die "Unknown harness '$requested' (${HARNESSES[*]})."
-        resolve_harness "$requested"
+        echo "$requested"
         return 0
     fi
 
@@ -131,6 +145,5 @@ choose_harness() {
     is_valid_harness "$default" ||
         die "Unknown harness '$default' (in $CONFIG_FILE) (${HARNESSES[*]})."
 
-    echo "Image: $IMAGE   Workspace: $WORKSPACE_DIR" >&2
-    resolve_harness "$(pick_one "Select harness:" "$default" "${HARNESSES[@]}")"
+    pick_one "Select harness:" "$default" "${HARNESSES[@]}"
 }

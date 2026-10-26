@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Credentials into the container: env vars passed by name (values never
 # touch the image) and provider API keys from the OS keyring.
-# Expects: CONFIG, ENV_KEYS (optional), HARNESS_CMD (set by main script).
+# Expects: CONFIG, ENV_KEYS (optional), HARNESS_NAME (set by main script).
 # Provides: ENV_ARGS (via build_env_args), KEYRING_ENV_FILE (via
 #           retrieve_keyring_secrets).
 #
@@ -36,7 +36,7 @@ pass_env() {
 # Forward only the active harness's keys, then ENV_KEYS / env_keys extras.
 build_env_args() {
     local key
-    local harness_keys="${HARNESS_ENV_KEYS[${HARNESS_CMD:-manual}]:-}"
+    local harness_keys="${HARNESS_ENV_KEYS[${HARNESS_NAME:-manual}]:-}"
 
     for key in $harness_keys; do
         pass_env "$key"
@@ -74,7 +74,7 @@ retrieve_keyring_secrets() {
         export DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$(id -u)/bus"
     fi
 
-    local harness_entry="${HARNESS_KEYRING[${HARNESS_CMD:-manual}]:-}"
+    local harness_entry="${HARNESS_KEYRING[${HARNESS_NAME:-manual}]:-}"
     [ -n "$harness_entry" ] || return 0
 
     key="${harness_entry%%:*}"
