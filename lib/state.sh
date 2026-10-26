@@ -11,11 +11,12 @@
 # Per-harness mapping: config files (synced from host) vs state dirs (snapshot only).
 # Usage: source this file, then call setup_harness_state <harness> <snapshot-dir>
 
-# Harness → config files (synced from host, host wins on conflict)
-# Format: "config_path:container_path" (relative to $HOME and /home/agent)
+# Harness → config files/dirs (synced from host, host wins on conflict)
+# Format: "host_path:container_path" (relative to $HOME and /home/agent)
+# Files are copied with cp; directories with cp -r (symlinks followed).
 declare -A HARNESS_CONFIG=(
     [claude]=".claude.json:.claude.json"
-    [opencode]=".config/opencode/config.json:.config/opencode/config.json"
+    [opencode]=".config/opencode/opencode.json:.config/opencode/opencode.json .config/opencode/agents:.config/opencode/agents .config/opencode/commands:.config/opencode/commands .claude/skills:.claude/skills"
     [vibe]=".vibe/config.json:.vibe/config.json"
     [pi]=".config/pi/settings.json:.config/pi/settings.json"
 )
@@ -24,13 +25,13 @@ declare -A HARNESS_CONFIG=(
 # These accumulate chat history, sessions, caches across runs.
 declare -A HARNESS_STATE_DIRS=(
     [claude]=".claude:.claude"
-    [opencode]=".config/opencode/state:.config/opencode/state .local/share/opencode:.local/share/opencode"
+    [opencode]=".local/share/opencode:.local/share/opencode"
     [vibe]=".vibe/sessions:.vibe/sessions"
     [pi]=".pi/sessions:.pi/sessions .config/pi/cache:.config/pi/cache"
 )
 
-# Copy config files from host to snapshot (host wins — overwrites).
-# Only copies files that exist on the host.
+# Copy config files/dirs from host to snapshot (host wins — overwrites).
+# Only copies paths that exist on the host. Directories are replaced wholesale.
 sync_configs_from_host() {
     local harness="$1"
     local snapshot_dir="$2"
@@ -47,6 +48,11 @@ sync_configs_from_host() {
         if [ -f "$src" ]; then
             mkdir -p "$(dirname "$dest")"
             cp "$src" "$dest"
+        elif [ -d "$src" ]; then
+            # -L: follow symlinks (host configs often symlink to dotfiles repo)
+            mkdir -p "$(dirname "$dest")"
+            rm -rf "$dest"
+            cp -rL "$src" "$dest"
         fi
     done
 }
@@ -76,14 +82,14 @@ build_state_mounts() {
 
     STATE_ARGS=()
 
-    # Mount config files
+    # Mount config files and directories
     local entry host_rel container_rel src dest
     for entry in $configs; do
         host_rel="${entry%%:*}"
         container_rel="${entry#*:}"
         dest="$snapshot_dir/$host_rel"
 
-        if [ -f "$dest" ]; then
+        if [ -e "$dest" ]; then
             STATE_ARGS+=(-v "$dest:/home/agent/$container_rel:rw")
         fi
     done
