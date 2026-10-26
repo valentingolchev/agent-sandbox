@@ -20,8 +20,12 @@ cpus = 4
 no_network = false
 persist_caches = false
 
-# Share host harness logins/config (claude/opencode/vibe/pi) with the sandbox.
+# Harness state snapshot: host state is copied to a snapshot, agent works on
+# the snapshot. Host state is NEVER modified. Chat history stays in snapshot.
+# harness_state_action: prompt (ask each time) | keep (sync configs from host)
+#                       | reset (fresh from host) | discard (empty)
 harness_state = true
+harness_state_action = prompt
 
 # Extra env var names passed into the container, on top of the common AI
 # provider keys (ANTHROPIC_API_KEY, OPENAI_API_KEY, MISTRAL_API_KEY, ...)

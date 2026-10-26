@@ -16,7 +16,8 @@
 #   runtime.sh      container runtime detection (podman/docker)
 #   stacks.sh       stack auto-discovery + image builds
 #   prompts.sh      interactive pickers
-#   credentials.sh  env var / keyring propagation
+#   credentials.sh  env var / keyring propagation (active harness only)
+#   state.sh        harness state snapshot management
 #
 # Env vars:
 #   CONTAINER_RUNTIME  podman | docker        (overrides auto-detection)
@@ -25,7 +26,8 @@
 #   REBUILD=1      rebuild the image chain first
 #   NO_NETWORK=1   no networking at all
 #   PERSIST_CACHES=1   keep tool caches across runs (named volumes)
-#   HARNESS_STATE=0    do not share host harness logins/config
+#   HARNESS_STATE=0    disable harness state snapshot
+#   HARNESS_STATE_ACTION=keep|reset|discard|prompt   snapshot action (default: prompt)
 #   MEMORY, CPUS   resource limits (default 8g / 4)
 #   ENV_KEYS       extra env var names to pass into the container
 #   AGENT_SANDBOX_CONFIG   alternative config file path
@@ -43,6 +45,7 @@ source "$SANDBOX_ROOT/lib/runtime.sh"
 source "$SANDBOX_ROOT/lib/stacks.sh"
 source "$SANDBOX_ROOT/lib/prompts.sh"
 source "$SANDBOX_ROOT/lib/credentials.sh"
+source "$SANDBOX_ROOT/lib/state.sh"
 
 load_config
 detect_runtime
@@ -97,35 +100,18 @@ if is_true "${PERSIST_CACHES:-${CONFIG[persist_caches]:-}}"; then
     )
 fi
 
-# Share host harness state (logins, config) read-write, so host logins work
-# in the sandbox. Only mounts state for the ACTIVE harness — not all harnesses.
-# Only existing dirs are mounted.
+# Harness state snapshot: copy-on-write with host-wins config sync.
+#   - Host state is NEVER modified (no sync-back)
+#   - Snapshot accumulates chat history, session data across runs
+#   - On [K]eep: host configs overwrite snapshot configs (host wins)
+#   - On [R]eset: wipe snapshot, copy fresh configs from host
+#   - On [D]iscard: wipe snapshot, start empty
+# Action: HARNESS_STATE_ACTION=keep|reset|discard|prompt (default: prompt)
 STATE_ARGS=()
 if is_true "${HARNESS_STATE:-${CONFIG[harness_state]:-true}}"; then
-    state_mount() {
-        [[ -e "$1" ]] || return 0   # missing host dir is not an error
-        STATE_ARGS+=(-v "$1:$2:rw")
-    }
-    # Mount state only for the active harness (HARNESS_CMD is set by choose_harness)
-    case "$HARNESS_CMD" in
-        claude)
-            state_mount "$HOME/.claude" /home/agent/.claude
-            state_mount "$HOME/.claude.json" /home/agent/.claude.json
-            ;;
-        opencode)
-            state_mount "$HOME/.config/opencode" /home/agent/.config/opencode
-            state_mount "$HOME/.local/share/opencode" /home/agent/.local/share/opencode
-            ;;
-        vibe)
-            state_mount "$HOME/.vibe" /home/agent/.vibe
-            ;;
-        pi)
-            state_mount "$HOME/.pi" /home/agent/.pi
-            state_mount "$HOME/.config/pi" /home/agent/.config/pi
-            ;;
-        *)  # manual/bash — no harness state needed
-            ;;
-    esac
+    SNAPSHOT_DIR="$HOME/.local/share/agent-sandbox/state/$HARNESS_CMD"
+    STATE_ACTION="${HARNESS_STATE_ACTION:-${CONFIG[harness_state_action]:-prompt}}"
+    setup_harness_state "$HARNESS_CMD" "$SNAPSHOT_DIR" "$STATE_ACTION"
 fi
 
 # -it needs a TTY on both ends; scripted runs fall back to -i.
