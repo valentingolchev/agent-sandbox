@@ -1,20 +1,86 @@
 #!/usr/bin/env bash
-# Install agent-sandbox on the host.
-# Each step runs as an isolated subprocess — no shared state, no ordering deps.
+# install.sh — Set up agent-sandbox on your machine.
+#
+# Steps:
+#   1. Check required tools (stow, podman/docker)
+#   2. Symlink agent-sandbox into ~/.local/bin
+#   3. Verify ~/.local/bin is in PATH
+#   4. Check container runtime is working
+#   5. Validate repository structure
+#
+# Safe to run multiple times.
+
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 HOST="$ROOT/lib/host"
 
-# Check tools; capture missing list from stdout
-if ! missing="$("$HOST/check_tools.sh")"; then
+# Pretty output
+BOLD='\033[1m'
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+YELLOW='\033[1;33m'
+CYAN='\033[0;36m'
+NC='\033[0m'
+
+step() { echo; echo -e "${BOLD}==>${NC} ${BOLD}$*${NC}"; }
+ok()   { echo -e "  ${GREEN}✓${NC} $*"; }
+warn() { echo -e "  ${YELLOW}!${NC} $*"; }
+fail() { echo -e "  ${RED}✗${NC} $*" >&2; }
+info() { echo -e "  ${CYAN}•${NC} $*"; }
+
+echo
+echo -e "${BOLD}agent-sandbox installer${NC}"
+echo
+
+# ── Step 1: Check tools ─────────────────────────────────────────
+step "Step 1/5: Checking required tools"
+if ! missing="$("$HOST/check_tools.sh" 2>&1)"; then
+    fail "Missing tools: $(echo $missing | tr '\n' ' ')"
+    echo
     "$HOST/show_install_help.sh" $missing
     exit 1
 fi
+ok "All required tools found (stow, container runtime)"
 
+# ── Step 2: Stow ────────────────────────────────────────────────
+step "Step 2/5: Setting up symlinks"
 "$HOST/stow.sh" "$ROOT"
-"$HOST/check_path.sh" || true
-"$HOST/check_runtime.sh" || true
-"$HOST/check_repo.sh" "$ROOT"
+ok "Installed to ~/.local/bin/agent-sandbox"
 
-echo "Done."
+# ── Step 3: Check PATH ──────────────────────────────────────────
+step "Step 3/5: Checking PATH"
+if "$HOST/check_path.sh" 2>&1; then
+    ok "~/.local/bin is in PATH"
+else
+    warn "PATH needs updating — follow the instructions above"
+fi
+
+# ── Step 4: Check runtime ───────────────────────────────────────
+step "Step 4/5: Checking container runtime"
+if "$HOST/check_runtime.sh" 2>&1; then
+    ok "Container runtime is ready"
+else
+    warn "Runtime needs attention — follow the instructions above"
+fi
+
+# ── Step 5: Validate repo ───────────────────────────────────────
+step "Step 5/5: Validating repository"
+if "$HOST/check_repo.sh" "$ROOT" 2>&1; then
+    ok "Repository structure valid"
+else
+    fail "Repository validation failed"
+    exit 1
+fi
+
+# ── Done ────────────────────────────────────────────────────────
+echo
+echo -e "${GREEN}${BOLD}Setup complete!${NC}"
+echo
+echo "Next steps:"
+echo "  1. Reload your shell or start a new terminal"
+echo "  2. Run: ${BOLD}agent-sandbox${NC}"
+echo
+echo "Configuration: ~/.config/agent-sandbox/config"
+echo "Documentation: README.md"
+echo

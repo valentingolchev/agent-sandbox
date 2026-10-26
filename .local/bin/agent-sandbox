@@ -98,20 +98,34 @@ if is_true "${PERSIST_CACHES:-${CONFIG[persist_caches]:-}}"; then
 fi
 
 # Share host harness state (logins, config) read-write, so host logins work
-# in the sandbox. Only existing dirs are mounted.
+# in the sandbox. Only mounts state for the ACTIVE harness — not all harnesses.
+# Only existing dirs are mounted.
 STATE_ARGS=()
 if is_true "${HARNESS_STATE:-${CONFIG[harness_state]:-true}}"; then
     state_mount() {
         [[ -e "$1" ]] || return 0   # missing host dir is not an error
         STATE_ARGS+=(-v "$1:$2:rw")
     }
-    state_mount "$HOME/.vibe" /home/agent/.vibe
-    state_mount "$HOME/.claude" /home/agent/.claude
-    state_mount "$HOME/.claude.json" /home/agent/.claude.json
-    state_mount "$HOME/.config/opencode" /home/agent/.config/opencode
-    state_mount "$HOME/.local/share/opencode" /home/agent/.local/share/opencode
-    state_mount "$HOME/.pi" /home/agent/.pi
-    state_mount "$HOME/.config/pi" /home/agent/.config/pi
+    # Mount state only for the active harness (HARNESS_CMD is set by choose_harness)
+    case "$HARNESS_CMD" in
+        claude)
+            state_mount "$HOME/.claude" /home/agent/.claude
+            state_mount "$HOME/.claude.json" /home/agent/.claude.json
+            ;;
+        opencode)
+            state_mount "$HOME/.config/opencode" /home/agent/.config/opencode
+            state_mount "$HOME/.local/share/opencode" /home/agent/.local/share/opencode
+            ;;
+        vibe)
+            state_mount "$HOME/.vibe" /home/agent/.vibe
+            ;;
+        pi)
+            state_mount "$HOME/.pi" /home/agent/.pi
+            state_mount "$HOME/.config/pi" /home/agent/.config/pi
+            ;;
+        *)  # manual/bash — no harness state needed
+            ;;
+    esac
 fi
 
 # -it needs a TTY on both ends; scripted runs fall back to -i.
