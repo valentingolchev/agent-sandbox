@@ -29,56 +29,104 @@ jobs:
         run: |
           find . -name '*.sh' -not -path './.git/*' -print0 | \
             xargs -0 -I {} bash -n {}
-          # Also check the main script (no .sh extension)
+          # Also check scripts without .sh extension
           bash -n .local/bin/agent-sandbox
           bash -n install.sh
 
-  # Build base container image to verify Containerfile
+  # Build base-tools image to verify the Containerfile
+  # (Stacks and harnesses are composed at runtime, so no matrix needed)
   build-base:
-    name: Build base image
+    name: Build base-tools image
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Build base image
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y podman
-          podman build \
-            --build-arg UID=1000 --build-arg GID=1000 \
-            -t agent-sandbox:base-ci \
-            base/
-
-      - name: Verify image exists
-        run: podman images agent-sandbox:base-ci
-
-  # Build all stack images (depends on base)
-  build-stacks:
-    name: Build stack images
-    runs-on: ubuntu-latest
-    needs: build-base
-    strategy:
-      matrix:
-        stack: [python, node, rust, elixir, lua-nvim, clojure, web-cljs, react-native-cljs]
     steps:
       - uses: actions/checkout@v4
 
       - name: Install podman
         run: sudo apt-get update && sudo apt-get install -y podman
 
-      - name: Build base image (dependency)
+      - name: Build base-tools image
         run: |
           podman build \
             --build-arg UID=1000 --build-arg GID=1000 \
-            -t agent-sandbox:base \
+            -t agent-sandbox:base-tools \
             base/
 
-      - name: Build stack image
+      - name: Verify image exists
+        run: podman images agent-sandbox:base-tools
+
+  # Verify ad hoc composition works (build one example)
+  test-compose:
+    name: Test ad hoc composition
+    runs-on: ubuntu-latest
+    needs: build-base
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install podman
+        run: sudo apt-get update && sudo apt-get install -y podman
+
+      - name: Build base-tools
         run: |
           podman build \
             --build-arg UID=1000 --build-arg GID=1000 \
-            -t agent-sandbox:${{ matrix.stack }}-ci \
-            stacks/${{ matrix.stack }}/
+            -t agent-sandbox:base-tools \
+            base/
 
-      - name: Verify image exists
-        run: podman images agent-sandbox:${{ matrix.stack }}-ci
+      - name: Test composing base-tools + claude harness
+        run: |
+          # Simulate what lib/stacks.sh does: generate temp Containerfile
+          tmpfile=$(mktemp)
+          {
+            echo "FROM agent-sandbox:base-tools"
+            echo "USER root"
+            cat base/harness/claude.sh
+            echo "USER agent"
+          } > "$tmpfile"
+
+          podman build \
+            --build-arg UID=1000 --build-arg GID=1000 \
+            -t agent-sandbox:base-tools-claude \
+            -f "$tmpfile" \
+            base/
+
+          rm -f "$tmpfile"
+          podman images agent-sandbox:base-tools-claude
+
+      - name: Test composing python stack + claude harness
+        run: |
+          podman build \
+            --build-arg UID=1000 --build-arg GID=1000 \
+            --build-arg BASE_IMAGE=agent-sandbox:base-tools-claude \
+            -t agent-sandbox:python-claude \
+            stacks/python/
+
+          podman images agent-sandbox:python-claude
+
+      - name: Test manual mode (no harness layer)
+        run: |
+          # Manual mode: stack builds directly on base-tools
+          podman build \
+            --build-arg UID=1000 --build-arg GID=1000 \
+            --build-arg BASE_IMAGE=agent-sandbox:base-tools \
+            -t agent-sandbox:python-manual \
+            stacks/python/
+
+          podman images agent-sandbox:python-manual
+
+      - name: Test multi-level chain (web-cljs → clojure → base-tools-claude)
+        run: |
+          # Build clojure-claude first
+          podman build \
+            --build-arg UID=1000 --build-arg GID=1000 \
+            --build-arg BASE_IMAGE=agent-sandbox:base-tools-claude \
+            -t agent-sandbox:clojure-claude \
+            stacks/clojure/
+
+          # Build web-cljs-claude on top
+          podman build \
+            --build-arg UID=1000 --build-arg GID=1000 \
+            --build-arg BASE_IMAGE=agent-sandbox:clojure-claude \
+            -t agent-sandbox:web-cljs-claude \
+            stacks/web-cljs/
+
+          podman images agent-sandbox:clojure-claude agent-sandbox:web-cljs-claude
