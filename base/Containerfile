@@ -1,8 +1,11 @@
-# Base image for the agent sandbox: hardened core tooling plus the LLM agent
-# harnesses themselves, shared by all stacks. Stack images (python, elixir,
-# clojure, ...) build FROM this one so layers are pulled once.
+# Base tools image for the agent sandbox: hardened core tooling only.
+# No harnesses, no language stacks — those are composed at build time
+# via base/harness/*.sh scripts and stack Containerfiles.
 #
-# Build:  podman build --build-arg UID=$(id -u) --build-arg GID=$(id -g) -t agent-sandbox:base .
+# This image is tagged as agent-sandbox:base-tools and is the foundation
+# for all composed images (base-tools + harness + stack chain).
+#
+# Build:  podman build --build-arg UID=$(id -u) --build-arg GID=$(id -g) -t agent-sandbox:base-tools .
 FROM quay.io/fedora/fedora-minimal:44
 
 # Core tooling a coding agent typically needs.
@@ -31,34 +34,14 @@ RUN curl -fsSL https://mise.jdx.dev/rpm/mise.repo -o /etc/yum.repos.d/mise.repo 
     microdnf --setopt=install_weak_deps=False --setopt=tsflags=nodocs install -y mise && \
     microdnf clean all
 
-# Agent harnesses, so claude/opencode/vibe/pi run in the base image and every
-# stack. Node-based ones via npm; vibe is Python-based and is installed with
-# uv system-wide (never into /home/agent -- the run script mounts a tmpfs
-# over it, which would mask it). HOME is redirected for the install so uv's
-# default tool paths land in /opt inside the image layer.
-#
-# SECURITY: All package versions are PINNED. Update deliberately:
-#   1. Check for security advisories (npm audit, osv.dev)
-#   2. Update the version below
-#   3. Rebuild with REBUILD=1
-#   4. Test all harnesses
-# Separate RUN layers: better caching when one harness updates.
-# --ignore-scripts only for pi: its docs recommend it; the others may need
-# their post-install scripts (e.g. binary downloads, symlink setup).
-RUN npm install -g @anthropic-ai/claude-code@2.1.310 && \
-    npm cache clean --force
-RUN npm install -g @opencode/cli@2.1.4 && \
-    npm cache clean --force
-RUN npm install -g --ignore-scripts @earendil-works/pi-coding-agent@1.4.0 && \
-    npm cache clean --force
+# uv (Python package installer) — used by the vibe harness and available
+# for stack installs. Copied from the official uv image (pinned version).
 COPY --from=ghcr.io/astral-sh/uv:0.5.4 /uv /uvx /usr/local/bin/
-RUN mkdir -p /opt/uv-home && \
-    HOME=/opt/uv-home uv tool install mistral-vibe==3.0.2 && \
-    rm -rf /opt/uv-home/.cache
 
-# /opt/uv-home/.local/bin for the vibe CLI; mise shims so `mise install`ed
-# tools resolve without `mise activate` (shims are created on demand under
-# the home dir, persisted via the PERSIST_CACHES ~/.local volume).
+# /opt/uv-home/.local/bin is where uv-installed tools (like vibe) land.
+# mise shims so `mise install`ed tools resolve without `mise activate`
+# (shims are created on demand under the home dir, persisted via the
+# PERSIST_CACHES ~/.local volume).
 ENV PATH=/opt/uv-home/.local/bin:/home/agent/.local/share/mise/shims:$PATH
 
 # Non-root user. Pass host UID/GID so workspace file ownership maps cleanly:
