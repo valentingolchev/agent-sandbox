@@ -119,6 +119,37 @@ Install scripts are in `base/harness/<name>.sh`.
 | `pi` | `pi` (@earendil-works/pi-coding-agent) | `base/harness/pi.sh` |
 | `manual` | `/bin/bash` (shell only) | — (no harness installed) |
 
+## Harness state (agents, skills, config)
+
+By default, the container starts with a fresh home directory — your host's
+harness config (agents, skills, commands, API keys in config) is NOT visible.
+
+Enable **harness state snapshots** to sync your host config into the container:
+
+```bash
+# Option 1: env var (one-off)
+HARNESS_STATE=1 agent-sandbox
+
+# Option 2: config file (persistent)
+# ~/.config/agent-sandbox/config:
+harness_state = true
+```
+
+What gets synced per harness:
+
+| Harness | Config (synced from host) | State (snapshot, accumulates) |
+|---------|---------------------------|-------------------------------|
+| `claude` | `~/.claude.json` | `~/.claude/` |
+| `opencode` | `~/.config/opencode/opencode.json`, `agents/`, `commands/`, `~/.claude/skills/` | `~/.local/share/opencode/` |
+| `vibe` | `~/.vibe/config.json` | `~/.vibe/sessions/` |
+| `pi` | `~/.config/pi/settings.json` | `~/.pi/sessions/`, `~/.config/pi/cache/` |
+
+Host config wins on conflict. State dirs accumulate across runs (chat history,
+sessions). Host state is never modified.
+
+First run prompts: **[K]eep** (sync configs) / **[R]eset** (fresh from host) /
+**[D]iscard** (empty). Set `HARNESS_STATE_ACTION=keep|reset|discard` to skip.
+
 ## How it works
 
 1. **Runtime detection** — podman (rootless) or docker, auto-detected
