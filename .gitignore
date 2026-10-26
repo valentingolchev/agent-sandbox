@@ -1,0 +1,12 @@
+# Editor
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+*.log
+
+# IDE
+.vscode/
+.idea/
