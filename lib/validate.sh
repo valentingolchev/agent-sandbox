@@ -2,11 +2,8 @@
 # validate.sh — validate agent-sandbox config file.
 # Provides: validate_config() — call after sourcing common.sh, config.sh, stacks.sh, prompts.sh
 
-errors=0
-warnings=0
-
-err()  { echo "  ✗ $*" >&2; errors=$((errors+1)); }
-warn() { echo "  ! $*" >&2; warnings=$((warnings+1)); }
+err()  { echo "  ✗ $*" >&2; VALIDATE_ERRORS=$((VALIDATE_ERRORS+1)); }
+warn() { echo "  ! $*" >&2; VALIDATE_WARNINGS=$((VALIDATE_WARNINGS+1)); }
 ok()   { echo "  ✓ $*"; }
 
 # Valid keys
@@ -17,14 +14,16 @@ VALID_ACTIONS="keep reset discard prompt"
 
 validate_config() {
     local config_file="${1:-$CONFIG_FILE}"
+    VALIDATE_ERRORS=0
+    VALIDATE_WARNINGS=0
 
     echo "Validating: $config_file"
     echo
 
     # File exists and is readable
     if [ ! -f "$config_file" ]; then
-        err "Config file not found: $config_file"
-        return 1
+        warn "Config file not found: $config_file (using defaults)"
+        return 0
     fi
     if [ ! -r "$config_file" ]; then
         err "Config file not readable: $config_file"
@@ -154,15 +153,15 @@ validate_config() {
 
     # Summary
     echo
-    if [ "$errors" -eq 0 ]; then
-        if [ "$warnings" -gt 0 ]; then
-            ok "Config valid (with $warnings warning(s)): $config_file"
+    if [ "$VALIDATE_ERRORS" -eq 0 ]; then
+        if [ "$VALIDATE_WARNINGS" -gt 0 ]; then
+            ok "Config valid (with $VALIDATE_WARNINGS warning(s)): $config_file"
         else
             ok "Config valid: $config_file"
         fi
         return 0
     else
-        echo "  Found $errors error(s), $warnings warning(s)"
+        echo "  Found $VALIDATE_ERRORS error(s), $VALIDATE_WARNINGS warning(s)"
         return 1
     fi
 }
