@@ -48,11 +48,11 @@ jobs:
         run: |
           podman build \
             --build-arg UID=1000 --build-arg GID=1000 \
-            -t agent-sandbox:base-tools \
+            -t localhost/agent-sandbox:base-tools \
             base/
 
       - name: Verify image exists
-        run: podman images agent-sandbox:base-tools
+        run: podman images localhost/agent-sandbox:base-tools
 
   # Verify ad hoc composition works (build one example)
   test-compose:
@@ -69,7 +69,7 @@ jobs:
         run: |
           podman build \
             --build-arg UID=1000 --build-arg GID=1000 \
-            -t agent-sandbox:base-tools \
+            -t localhost/agent-sandbox:base-tools \
             base/
 
       - name: Test composing base-tools + claude harness
@@ -77,7 +77,7 @@ jobs:
           # Simulate what lib/stacks.sh does: generate temp Containerfile
           tmpfile=$(mktemp)
           {
-            echo "FROM agent-sandbox:base-tools"
+            echo "FROM localhost/agent-sandbox:base-tools"
             echo "USER root"
             cat base/harness/claude.sh
             echo "RUN chown -R agent:agent /home/agent"
@@ -86,48 +86,48 @@ jobs:
 
           podman build \
             --build-arg UID=1000 --build-arg GID=1000 \
-            -t agent-sandbox:base-tools-claude \
+            -t localhost/agent-sandbox:base-tools-claude \
             -f "$tmpfile" \
             base/
 
           rm -f "$tmpfile"
-          podman images agent-sandbox:base-tools-claude
+          podman images localhost/agent-sandbox:base-tools-claude
 
       - name: Test composing python stack + claude harness
         run: |
           podman build \
             --build-arg UID=1000 --build-arg GID=1000 \
-            --build-arg BASE_IMAGE=agent-sandbox:base-tools-claude \
-            -t agent-sandbox:python-claude \
+            --build-arg BASE_IMAGE=localhost/agent-sandbox:base-tools-claude \
+            -t localhost/agent-sandbox:python-claude \
             stacks/python/
 
-          podman images agent-sandbox:python-claude
+          podman images localhost/agent-sandbox:python-claude
 
       - name: Test manual mode (no harness layer)
         run: |
           # Manual mode: stack builds directly on base-tools
           podman build \
             --build-arg UID=1000 --build-arg GID=1000 \
-            --build-arg BASE_IMAGE=agent-sandbox:base-tools \
-            -t agent-sandbox:python-manual \
+            --build-arg BASE_IMAGE=localhost/agent-sandbox:base-tools \
+            -t localhost/agent-sandbox:python-manual \
             stacks/python/
 
-          podman images agent-sandbox:python-manual
+          podman images localhost/agent-sandbox:python-manual
 
       - name: Test multi-level chain (web-cljs → clojure → base-tools-claude)
         run: |
           # Build clojure-claude first
           podman build \
             --build-arg UID=1000 --build-arg GID=1000 \
-            --build-arg BASE_IMAGE=agent-sandbox:base-tools-claude \
-            -t agent-sandbox:clojure-claude \
+            --build-arg BASE_IMAGE=localhost/agent-sandbox:base-tools-claude \
+            -t localhost/agent-sandbox:clojure-claude \
             stacks/clojure/
 
           # Build web-cljs-claude on top
           podman build \
             --build-arg UID=1000 --build-arg GID=1000 \
-            --build-arg BASE_IMAGE=agent-sandbox:clojure-claude \
-            -t agent-sandbox:web-cljs-claude \
+            --build-arg BASE_IMAGE=localhost/agent-sandbox:clojure-claude \
+            -t localhost/agent-sandbox:web-cljs-claude \
             stacks/web-cljs/
 
-          podman images agent-sandbox:clojure-claude agent-sandbox:web-cljs-claude
+          podman images localhost/agent-sandbox:clojure-claude localhost/agent-sandbox:web-cljs-claude

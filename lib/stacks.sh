@@ -17,6 +17,10 @@
 declare -A STACK_PARENT=()
 STACKS=()
 
+# Local images are tagged with localhost/ prefix — podman short-name
+# resolution requires TTY in CI, so use fully-qualified local names.
+IMAGE_PREFIX="localhost/agent-sandbox"
+
 # Discover stacks from stacks/*/Containerfile and parse parent from FROM line.
 # "base" is a pseudo-stack meaning base-tools + harness (no language stack).
 discover_stacks() {
@@ -81,11 +85,11 @@ context_for() {
 # Build base-tools image (no harnesses, just core tooling).
 ensure_base_tools() {
     if [[ "${REBUILD:-0}" == "1" ]] || ! image_exists "base-tools"; then
-        echo "Building agent-sandbox:base-tools with $RUNTIME ..."
+        echo "Building $IMAGE_PREFIX:base-tools with $RUNTIME ..."
         "$RUNTIME" build \
             --build-arg UID="$(id -u)" \
             --build-arg GID="$(id -g)" \
-            -t "agent-sandbox:base-tools" \
+            -t "$IMAGE_PREFIX:base-tools" \
             "$SANDBOX_ROOT/base"
     fi
 }
@@ -94,7 +98,7 @@ ensure_base_tools() {
 # The harness install script is at base/harness/<harness>.sh (contains RUN commands).
 build_base_with_harness() {
     local harness="$1"
-    local image="agent-sandbox:base-tools-${harness}"
+    local image="$IMAGE_PREFIX:base-tools-${harness}"
     local harness_script="$SANDBOX_ROOT/base/harness/${harness}.sh"
 
     # Skip if already built
@@ -111,7 +115,7 @@ build_base_with_harness() {
     tmpfile=$(mktemp "${TMPDIR:-/tmp}/agent-sandbox-Containerfile.XXXXXX")
 
     {
-        echo "FROM agent-sandbox:base-tools"
+        echo "FROM $IMAGE_PREFIX:base-tools"
         echo "USER root"
         cat "$harness_script"
         # Harness installs (npm, uv) create dirs in $HOME as root.
@@ -135,7 +139,7 @@ build_stack_with_harness() {
     local stack="$1"
     local harness="$2"
     local parent_image="$3"
-    local image="agent-sandbox:${stack}-${harness}"
+    local image="$IMAGE_PREFIX:${stack}-${harness}"
     local context
     context="$(context_for "$stack")"
 
@@ -181,15 +185,15 @@ ensure_image() {
         # Top-level stack: builds on base-tools-<harness> (or base-tools for manual)
         ensure_base_tools
         if [ "$harness" = "manual" ]; then
-            parent_image="agent-sandbox:base-tools"
+            parent_image="$IMAGE_PREFIX:base-tools"
         else
             build_base_with_harness "$harness"
-            parent_image="agent-sandbox:base-tools-${harness}"
+            parent_image="$IMAGE_PREFIX:base-tools-${harness}"
         fi
     else
         # Child stack: build parent chain first
         ensure_image "$parent" "$harness"
-        parent_image="agent-sandbox:${parent}-${harness}"
+        parent_image="$IMAGE_PREFIX:${parent}-${harness}"
     fi
 
     build_stack_with_harness "$stack" "$harness" "$parent_image"
@@ -201,15 +205,15 @@ image_name_for() {
     local harness="$2"
     if [ "$harness" = "manual" ]; then
         if [ "$stack" = "base" ]; then
-            echo "agent-sandbox:base-tools"
+            echo "$IMAGE_PREFIX:base-tools"
         else
-            echo "agent-sandbox:${stack}-manual"
+            echo "$IMAGE_PREFIX:${stack}-manual"
         fi
     else
         if [ "$stack" = "base" ]; then
-            echo "agent-sandbox:base-tools-${harness}"
+            echo "$IMAGE_PREFIX:base-tools-${harness}"
         else
-            echo "agent-sandbox:${stack}-${harness}"
+            echo "$IMAGE_PREFIX:${stack}-${harness}"
         fi
     fi
 }

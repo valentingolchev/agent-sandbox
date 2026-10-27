@@ -79,7 +79,7 @@ security_opts() {
 }
 
 image_exists() {
-    "$RUNTIME" image exists "agent-sandbox:$1" 2>/dev/null
+    "$RUNTIME" image exists "localhost/agent-sandbox:$1" 2>/dev/null
 }
 
 build_image() {
