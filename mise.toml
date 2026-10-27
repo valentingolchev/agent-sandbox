@@ -5,17 +5,21 @@
 description = "Install agent-sandbox (stow + config + checks)"
 run = "./lib/host/install_impl.sh"
 
+[tasks.lint]
+description = "Shellcheck + bash syntax check"
+run = "./lint.sh"
+
+[tasks."test-build"]
+description = "Build and test image composition"
+run = "./test-build.sh"
+
 [tasks.test]
-description = "Run CI checks locally (lint + build). Args: --skip-build, --skip-lint"
-run = "./test.sh"
+description = "Run all checks (lint + build tests)"
+depends = ["lint", "test-build"]
 
 [tasks.run]
 description = "Run agent-sandbox from source (no install needed)"
 run = "./run.sh"
-
-[tasks.lint]
-description = "Shellcheck + bash syntax check"
-run = "./test.sh --skip-build"
 
 [tasks.build]
 description = "Build base-tools image"

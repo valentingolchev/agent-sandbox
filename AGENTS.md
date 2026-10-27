@@ -16,7 +16,7 @@ Guidelines for AI agents (claude, opencode, pi, vibe) working on this repo.
 **Push:** Only when explicitly asked. Use `--force-with-lease` for rewritten history.
 
 **🚨 CRITICAL: Before every commit, run `mise run test` (or `./test.sh`) and assess if README.md needs updating.**
-- `mise run test` runs lint + build checks locally (same as CI). Fix failures before committing.
+- `mise run test` = `mise run lint` + `mise run test-build` (same as CI). Fix failures before committing.
 - If the commit changes user-facing behavior (env vars, config keys, stacks,
   harnesses, install steps, security model), update README.md in the same commit.
 - Don't commit code changes that make the README stale or fail CI.
@@ -96,8 +96,9 @@ set -euo pipefail
 | Install | `mise run install` (or `./install.sh` to bootstrap mise) |
 | Run agent | `agent-sandbox` |
 | Run from source | `mise run run` (or `./run.sh`) |
-| **Run CI checks locally** | **`mise run test`** (or `./test.sh`) |
-| Lint | `mise run lint` |
+| **Run all checks** | **`mise run test`** (lint + build, or `./test.sh`) |
+| Lint only | `mise run lint` (or `./lint.sh`) |
+| Build tests only | `mise run test-build` (or `./test-build.sh`) |
 | Build base-tools | `mise run build` |
 | Clean images | `mise run clean` |
 | Force rebuild | `REBUILD=1 agent-sandbox` |
