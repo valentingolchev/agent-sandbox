@@ -10,35 +10,28 @@ permissions:
   contents: read
 
 jobs:
-  # Lint and syntax-check all shell scripts
+  # Lint and syntax-check all shell scripts (via mise)
   lint:
     name: Lint shell scripts
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
 
-      - name: Install shellcheck
-        run: sudo apt-get update && sudo apt-get install -y shellcheck
-
-      - name: Shellcheck
-        run: |
-          find . -name '*.sh' -not -path './.git/*' -print0 | \
-            xargs -0 shellcheck --severity=warning
-
-      - name: Bash syntax check
-        run: |
-          find . -name '*.sh' -not -path './.git/*' -print0 | \
-            xargs -0 -I {} bash -n {}
-          bash -n .local/bin/agent-sandbox
-          bash -n install.sh
-          bash -n run.sh
-          bash -n test.sh
+      - name: Install mise
+        run: curl -fsSL https://mise.run | sh
 
       - name: Validate mise.toml
         run: |
-          curl -fsSL https://mise.run | sh
           export PATH="$HOME/.local/bin:$PATH"
           mise tasks
+
+      - name: Install shellcheck
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+
+      - name: Lint (mise run lint)
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          mise run lint
 
   # Smoke test: build base-tools image
   build-base:

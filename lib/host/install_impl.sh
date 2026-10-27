@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# install.sh — Set up agent-sandbox on your machine.
+# install_impl.sh — actual install logic (called by `mise run install`).
+# Bootstrap lives in install.sh at repo root.
 #
 # Steps:
 #   1. Check required tools (stow, podman/docker)
