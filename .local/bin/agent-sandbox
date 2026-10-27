@@ -55,6 +55,10 @@ set -- "${ARGS[@]}"
 
 WORKSPACE_DIR="$(realpath "${1:-$PWD}")"
 WORKSPACE_NAME="$(basename "$WORKSPACE_DIR")"
+# Container mount paths use : as separator — reject names containing it
+if [[ "$WORKSPACE_NAME" == *:* ]]; then
+    die "Workspace name contains ':' (breaks container mount): $WORKSPACE_NAME"
+fi
 
 source "$SANDBOX_ROOT/lib/common.sh"
 source "$SANDBOX_ROOT/lib/config.sh"
@@ -72,7 +76,7 @@ scan_workspace_secrets() {
         \( -name '.env' -o -name '*.pem' -o -name '*.key' \
            -o -name 'credentials*' -o -name 'secrets*' -o -name '*.p12' \
            -o -name 'id_rsa*' -o -name 'id_ed25519*' \) \
-        -not -path '*/.git/*' 2>/dev/null)
+        -not -path '*/.git/*' 2>/dev/null || true)
     if [ -n "$secrets" ]; then
         echo "⚠️  Warning: Potential secrets found in workspace:" >&2
         echo "$secrets" | sed "s|^$WORKSPACE_DIR/|     |" >&2
@@ -152,6 +156,11 @@ fi
 build_env_args
 retrieve_keyring_secrets
 
+# Delete keyring temp file on ANY exit (Ctrl+C, error, normal) — must be set
+# immediately after the file is created, before any interactive prompts or
+# scans that could abort the script.
+trap '[ -z "$KEYRING_ENV_FILE" ] || rm -f "$KEYRING_ENV_FILE"' EXIT
+
 # Opt-in persistent tool caches: faster repeat sessions, at the cost of
 # state surviving across runs.
 CACHE_ARGS=()
@@ -198,6 +207,7 @@ scan_workspace_secrets
 
 # P1: Session audit log — record what was run (not full session output)
 SESSION_LOG_FILE="${SESSION_LOG:-${CONFIG[session_log]:-}}"
+SESSION_LOG_FILE="${SESSION_LOG_FILE/#\~/$HOME}"
 if [ -n "$SESSION_LOG_FILE" ]; then
     mkdir -p "$(dirname "$SESSION_LOG_FILE")"
     {
@@ -216,8 +226,6 @@ if [ -n "$SESSION_LOG_FILE" ]; then
 fi
 
 # ---- run ----
-
-trap '[ -z "$KEYRING_ENV_FILE" ] || rm -f "$KEYRING_ENV_FILE"' EXIT
 
 "$RUNTIME" run "${TTY_ARGS[@]}" --rm \
     --pull=never \

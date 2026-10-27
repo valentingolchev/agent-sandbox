@@ -6,11 +6,12 @@ ARG BASE_IMAGE=agent-sandbox:base-tools
 FROM ${BASE_IMAGE}
 USER root
 
+# Clojure CLI installer — version pinned: 1.12.6.1673 (update deliberately)
 RUN microdnf --setopt=install_weak_deps=False --setopt=tsflags=nodocs install -y \
         java-25-openjdk-headless && \
     microdnf clean all && \
-    curl -sSL -o /tmp/linux-install.sh \
-        https://github.com/clojure/brew-install/releases/latest/download/linux-install.sh && \
+    curl -fsSL -o /tmp/linux-install.sh \
+        https://github.com/clojure/brew-install/releases/download/1.12.6.1673/linux-install.sh && \
     bash /tmp/linux-install.sh && \
     rm -f /tmp/linux-install.sh
 

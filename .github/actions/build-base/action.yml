@@ -15,4 +15,4 @@ runs:
       shell: bash
       env:
         CONTAINER_RUNTIME: ${{ inputs.runtime }}
-      run: scripts/ci-setup.sh ${{ inputs.harness }}
+      run: scripts/ci-setup.sh "${{ inputs.harness }}"

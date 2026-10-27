@@ -3,8 +3,9 @@
 
 [tools]
 # Dev tools (installed by mise, managed automatically)
-shellcheck = "latest"
-fzf = "latest"
+# Versions pinned — update deliberately
+shellcheck = "0.11.0"
+fzf = "0.67.0"
 
 # System requirements (NOT installed by mise — use package manager):
 #   stow:    sudo dnf install stow   (Fedora/RHEL)

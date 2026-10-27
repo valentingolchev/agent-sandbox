@@ -21,8 +21,9 @@ RUN microdnf --setopt=install_weak_deps=False --setopt=tsflags=nodocs install -y
 # docker compose (v2 standalone) in the CLI plugin dir, so both
 # `docker compose` and `docker-compose` work. Talks to a daemon via
 # DOCKER_HOST / a mounted socket; none runs inside the sandbox.
+# Version pinned: 2.40.3 (update deliberately)
 RUN mkdir -p /usr/local/libexec/docker/cli-plugins && \
-    curl -fsSL https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64 \
+    curl -fsSL https://github.com/docker/compose/releases/download/v2.40.3/docker-compose-linux-x86_64 \
         -o /usr/local/libexec/docker/cli-plugins/docker-compose && \
     chmod 0755 /usr/local/libexec/docker/cli-plugins/docker-compose && \
     ln -s /usr/local/libexec/docker/cli-plugins/docker-compose /usr/local/bin/docker-compose
@@ -54,11 +55,10 @@ RUN groupadd -g ${GID} agent && \
              /home/agent/.local/bin /home/agent/.config /home/agent/.cache && \
     chown -R agent:agent /home/agent
 
-# The run script mounts a tmpfs over /home/agent with copy-up from this
-# image: pre-creating the XDG parent dirs agent-owned above means the
-# runtime home has writable parents, so harnesses can mkdir siblings next
-# to the bind-mounted state dirs (which would otherwise be root-owned
-# podman-created parents the agent cannot write into).
+# The run script mounts a tmpfs over /home/agent (mode=1777). Pre-creating
+# the XDG parent dirs agent-owned above is still useful: podman's tmpfs
+# copy-up preserves the image's directory ownership, so the agent user
+# can write into ~/.local/share, ~/.config, etc. without root-owned parents.
 
 ENV PYTHONUNBUFFERED=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \

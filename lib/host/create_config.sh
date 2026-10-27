@@ -29,6 +29,7 @@ if [ -f "$config" ]; then
     info "Config exists: $config"
 elif [ -f "$template" ]; then
     sed "s|@SANDBOX_ROOT@|$root|g" "$template" > "$config"
+    chmod 600 "$config"  # may contain env_keys, session_log path
     info "Created config from template: $config"
 else
     info "No template found at $template, skipping"

@@ -13,6 +13,14 @@ RUNTIME="${CONTAINER_RUNTIME:-podman}"
 IMG="localhost/agent-sandbox"
 HARNESS="${1:-}"
 
+# Validate harness name (prevent path traversal via ../)
+if [ -n "$HARNESS" ]; then
+    case "$HARNESS" in
+        claude|opencode|vibe|pi) ;;
+        *) echo "Invalid harness: $HARNESS" >&2; exit 1 ;;
+    esac
+fi
+
 "$RUNTIME" build --build-arg UID=1000 --build-arg GID=1000 \
     -t "$IMG:base-tools" "$ROOT/base"
 

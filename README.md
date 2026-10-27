@@ -108,10 +108,15 @@ First run prompts `[K]eep/[R]eset/[D]iscard`; set `HARNESS_STATE_ACTION` to skip
 - Only the selected harness is installed (smaller attack surface)
 - Read-only root, all caps dropped, `no-new-privileges`, pids limit 512
 - SELinux label disabled on SELinux hosts
-- API keys via `--env-file`, scoped to active harness only
+- API keys via `--env-file` (temp file deleted on exit), scoped to active harness only
 - Harness state: host never modified (snapshot copy-on-write)
-- Workspace mounted at `/workspace/<name>` (host path hidden)
+- Workspace mounted at `/workspace/<name>` — host path hidden from the agent's
+  working directory, but note: bind-mount sources are visible via
+  `/proc/self/mountinfo` inside the container. Path hiding is cosmetic, not
+  a security boundary.
 - Package versions pinned in all Containerfiles
+- Keyring secrets with newlines rejected (env-file injection prevention)
+- Config file created with mode 600; snapshot dirs mode 700
 
 ## Troubleshooting
 

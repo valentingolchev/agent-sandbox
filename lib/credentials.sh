@@ -89,6 +89,12 @@ retrieve_keyring_secrets() {
     secret="$(secret-tool lookup service "$service" username "$key" 2>/dev/null || true)"
     [ -n "$secret" ] || return 0
 
+    # Reject multi-line secrets — they would inject extra lines into --env-file
+    if [[ "$secret" == *$'\n'* ]]; then
+        echo "Warning: $key from keyring contains newlines, skipping (env-file injection risk)" >&2
+        return 0
+    fi
+
     f="$(mktemp "/run/user/$(id -u)/agent-sandbox-env.XXXXXX")" || return 0
     chmod 600 "$f"
     # shellcheck disable=SC2034  # used by main script via sourcing

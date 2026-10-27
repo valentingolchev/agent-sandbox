@@ -6,7 +6,8 @@ ARG BASE_IMAGE=agent-sandbox:base-tools
 FROM ${BASE_IMAGE}
 USER root
 
-RUN npm install -g pnpm && \
+# pnpm pinned: 10.20.0 (update deliberately)
+RUN npm install -g pnpm@10.20.0 && \
     npm cache clean --force && \
     chown -R agent:agent /home/agent
 

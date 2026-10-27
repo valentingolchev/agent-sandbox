@@ -124,6 +124,7 @@ setup_harness_state() {
     [ -n "${HARNESS_CONFIG[$harness]:-}" ] || [ -n "${HARNESS_STATE_DIRS[$harness]:-}" ] || return 0
 
     mkdir -p "$snapshot_dir"
+    chmod 700 "$snapshot_dir"  # snapshot may contain OAuth tokens
 
     # Determine action
     if [ "$action" = "prompt" ] && snapshot_exists "$snapshot_dir"; then
