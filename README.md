@@ -11,9 +11,11 @@ Run LLM coding agents (claude, opencode, pi, vibe) in hardened containers.
 ## Install
 
 ```bash
-./install.sh          # symlinks to ~/.local/bin, creates ~/.config/agent-sandbox/config
+./setup.sh            # bootstraps mise, then: stow + config + checks
 ./run.sh              # or run from source, no install
 ```
+
+Tools: `stow` + `podman`/`docker` (system package manager). `fzf` is optional (auto-installed by mise). See `mise.toml` for details.
 
 Config: `~/.config/agent-sandbox/config` (regular file, created from
 `.config/agent-sandbox/config.template` — never overwritten on reinstall).
@@ -114,16 +116,16 @@ First run prompts `[K]eep/[R]eset/[D]iscard`; set `HARNESS_STATE_ACTION` to skip
 |---------|----------|
 | `EACCES` in `~/.local/share/<harness>/` | `REBUILD=1` — old images had root-owned dirs |
 | Harness missing agents/skills | `HARNESS_STATE=1` |
-| `stow` fails: target exists | Remove `~/.local/bin/agent-sandbox`, re-run `./install.sh` |
+| `stow` fails: target exists | Remove `~/.local/bin/agent-sandbox`, re-run `./setup.sh` |
 | Images stale after repo move | `REBUILD=1 ./run.sh` |
 
 ## Development
 
-Uses [mise](https://mise.jdx.dev) as task runner. `./install.sh` bootstraps mise automatically.
+Uses [mise](https://mise.jdx.dev) as task runner. `./setup.sh` bootstraps mise automatically.
 
 ```bash
 mise tasks                  # list all tasks
-mise run install            # install (stow + config + checks)
+mise run setup              # set up (stow + config + checks)
 mise run test               # run all checks (lint + build tests)
 mise run lint               # shellcheck + bash syntax only
 mise run test-build         # build tests only
@@ -132,7 +134,7 @@ mise run build              # build base-tools image
 mise run clean              # remove all agent-sandbox images
 
 # Without mise (bootstrap installs it):
-./install.sh                # installs mise, then runs mise run install
+./setup.sh                  # installs mise, then runs mise run setup
 ./test.sh                   # all checks (lint.sh + test-build.sh)
 ./lint.sh                   # lint only
 ./run.sh                    # run from source

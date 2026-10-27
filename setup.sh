@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# install.sh — bootstrap mise, then delegate to `mise run install`.
+# setup.sh — bootstrap mise, then delegate to `mise run setup`.
 set -euo pipefail
 
 if ! command -v mise >/dev/null 2>&1; then
@@ -11,4 +11,4 @@ if ! command -v mise >/dev/null 2>&1; then
     export PATH="$HOME/.local/bin:$PATH"
 fi
 
-exec mise run install "$@"
+exec mise run setup "$@"

@@ -28,7 +28,7 @@ elif command -v docker >/dev/null 2>&1; then
             echo "To fix, start Docker Desktop:"
             echo "    open -a Docker"
             echo
-            echo "Wait for Docker to start, then re-run: ./install.sh"
+            echo "Wait for Docker to start, then re-run: ./setup.sh"
             ;;
         Linux*)
             echo "To fix, start the Docker service:"
@@ -39,7 +39,7 @@ elif command -v docker >/dev/null 2>&1; then
             echo "    sudo usermod -aG docker $USER"
             echo "    newgrp docker  # apply group change"
             echo
-            echo "Then re-run: ./install.sh"
+            echo "Then re-run: ./setup.sh"
             ;;
     esac
     echo

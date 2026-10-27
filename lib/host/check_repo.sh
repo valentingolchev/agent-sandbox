@@ -18,9 +18,9 @@ done
 
 if [ $ok -eq 1 ]; then
     echo
-    echo "To fix, run install.sh from the repository root:"
+    echo "To fix, run setup.sh from the repository root:"
     echo "    cd /path/to/agent-sandbox"
-    echo "    ./install.sh"
+    echo "    ./setup.sh"
     echo
     exit 1
 fi

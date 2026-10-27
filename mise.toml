@@ -1,9 +1,23 @@
-# mise tasks for agent-sandbox
-# Run: mise run <task>   |   List: mise tasks
+# mise config for agent-sandbox
+# Tools: mise install   |   Tasks: mise tasks   |   Run: mise run <task>
 
-[tasks.install]
-description = "Install agent-sandbox (stow + config + checks)"
-run = "./lib/host/install_impl.sh"
+[tools]
+# Cross-platform tools (installed by mise)
+fzf = "latest"
+
+# System requirements (install via package manager, mise can't handle these):
+#   stow:    sudo dnf install stow   (Fedora/RHEL)
+#            sudo apt install stow   (Debian/Ubuntu)
+#            brew install stow       (macOS)
+#   podman:  sudo dnf install podman (Fedora/RHEL)
+#            sudo apt install podman (Debian/Ubuntu)
+#            brew install podman     (macOS)
+#   docker:  Docker Desktop (macOS) or system package (Linux)
+#   bash, git, curl — usually pre-installed
+
+[tasks.setup]
+description = "Set up agent-sandbox (stow + config + checks)"
+run = "./lib/host/install.sh"
 
 [tasks.lint]
 description = "Shellcheck + bash syntax check"

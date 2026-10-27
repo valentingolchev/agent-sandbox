@@ -7,7 +7,7 @@
 #   HARNESS=claude ./run.sh
 #
 # Requires: podman or docker (same as agent-sandbox itself).
-# Skips ./install.sh entirely — no stow, no PATH changes.
+# Skips ./setup.sh entirely — no stow, no PATH changes.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

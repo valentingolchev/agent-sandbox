@@ -30,7 +30,7 @@ Guidelines for AI agents (claude, opencode, pi, vibe) working on this repo.
 - **Isolated** — Prefer subprocess calls over sourcing
 - **No implicit ordering** — Scripts don't depend on call order
 - **Minimal output** — Bare essential messages
-- **mise tasks** — Task runner defined in `mise.toml`. Scripts are implementation; mise tasks are the entry point. `./install.sh` bootstraps mise, then delegates.
+- **mise tasks** — Task runner defined in `mise.toml`. Scripts are implementation; mise tasks are the entry point. `./setup.sh` bootstraps mise, then delegates.
 
 ### Calling vs Sourcing
 
@@ -93,7 +93,7 @@ set -euo pipefail
 | Task | Command |
 |------|---------|
 | List all tasks | `mise tasks` |
-| Install | `mise run install` (or `./install.sh` to bootstrap mise) |
+| Set up | `mise run setup` (or `./setup.sh` to bootstrap mise) |
 | Run agent | `agent-sandbox` |
 | Run from source | `mise run start` (or `./run.sh`) |
 | **Run all checks** | **`mise run test`** (lint + build, or `./test.sh`) |
