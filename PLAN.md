@@ -56,6 +56,7 @@ Done items stay in the list with ~~strikethrough~~ — numbers never change.
 ARG BASE_IMAGE=agent-sandbox:base-tools
 FROM ${BASE_IMAGE}
 USER root
+# golang from Fedora repos (gets security updates via microdnf)
 RUN microdnf --setopt=install_weak_deps=False --setopt=tsflags=nodocs install -y \
         golang && \
     microdnf clean all
@@ -63,7 +64,6 @@ ENV GOPATH=/home/agent/go \
     PATH=/home/agent/go/bin:$PATH
 USER agent
 ```
-- Installs Go from Fedora repos (version may lag — pin if needed)
 - `GOPATH` in `/home/agent/go` (covered by `PERSIST_CACHES` volume)
 - `gopls` (LSP) installed via `go install` at runtime or in image
 
@@ -72,15 +72,16 @@ USER agent
 ARG BASE_IMAGE=agent-sandbox:base-tools
 FROM ${BASE_IMAGE}
 USER root
-RUN curl -sSL https://ziglang.org/download/index.json | \
-        jq -r '.master.version' | xargs -I {} \
-        curl -sSL https://ziglang.org/download/{}/zig-linux-x86_64-{}.tar.xz | \
-        tar -xJ -C /opt && \
-    ln -s /opt/zig-linux-x86_64-*/zig /usr/local/bin/zig
+# Zig version pinned: 0.15.2 (update deliberately, check ziglang.org/download)
+RUN curl -fsSL -o /tmp/zig.tar.xz \
+        https://ziglang.org/download/0.15.2/zig-linux-x86_64-0.15.2.tar.xz && \
+    tar -xJf /tmp/zig.tar.xz -C /opt && \
+    ln -s /opt/zig-linux-x86_64-0.15.2/zig /usr/local/bin/zig && \
+    rm -f /tmp/zig.tar.xz
 USER agent
 ```
 - Zig has no Fedora package — install from upstream tarball
-- Pin version (check ziglang.org/download)
+- Version pinned (update deliberately, check ziglang.org/download)
 - Alternatively: use `mise use zig` at runtime
 
 **Files:**

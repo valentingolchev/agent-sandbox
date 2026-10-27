@@ -4,15 +4,16 @@ Run LLM coding agents (claude, opencode, pi, vibe) in hardened containers.
 
 ## Requirements
 
-- Linux: podman (rootless, preferred) or docker
-- macOS: Docker Desktop or podman machine
-- `stow` (install only), `fzf` (optional, fuzzy prompts)
+- **Linux**: podman (rootless, preferred) or docker — system package
+- **macOS**: Docker Desktop or podman machine
+- `stow` — system package (setup only)
+- `shellcheck`, `fzf` — auto-installed by mise (dev tools, see `mise.toml`)
 
 ## Install
 
 ```bash
-./setup.sh            # bootstraps mise, then: stow + config + checks
-./run.sh              # or run from source, no install
+./setup.sh                 # bootstraps mise, then: stow + config + checks
+./scripts/run.sh           # or run from source, no setup needed
 ```
 
 System tools: `stow` + `podman`/`docker` (package manager — see `mise.toml` comments).
@@ -27,6 +28,7 @@ Config: `~/.config/agent-sandbox/config` (regular file, created from
 agent-sandbox                          # interactive: pick stack + harness
 AGENT_IMAGE=agent-sandbox:python HARNESS=opencode agent-sandbox
 agent-sandbox ~/projects/my-app        # specific workspace
+agent-sandbox --check                  # validate config and exit
 HARNESS_STATE=1 agent-sandbox          # sync host agents/skills/config
 REBUILD=1 agent-sandbox                # rebuild images
 ```
@@ -34,7 +36,7 @@ REBUILD=1 agent-sandbox                # rebuild images
 ## Configuration
 
 INI format. Globals + `[path]` sections (longest prefix wins, `~` = `$HOME`).
-Created by install with a section for the agent-sandbox repo itself.
+Created by `./setup.sh` with a section for the agent-sandbox repo itself.
 
 ```ini
 stack = base
@@ -83,7 +85,7 @@ Manual mode (no harness): `agent-sandbox:base-tools`, `agent-sandbox:<stack>-man
 | `rust` | Rust (rustup, system-wide) |
 | `elixir` | Erlang/Elixir + Phoenix deps |
 | `lua-nvim` | Lua + Neovim for dotfiles |
-| `clojure` | JDK 21 + Clojure CLI |
+| `clojure` | JDK 25 + Clojure CLI |
 | `web-cljs` | Clojure + pnpm for shadow-cljs |
 | `react-native-cljs` | web-cljs + full JDK for Android |
 
@@ -125,7 +127,7 @@ First run prompts `[K]eep/[R]eset/[D]iscard`; set `HARNESS_STATE_ACTION` to skip
 | `EACCES` in `~/.local/share/<harness>/` | `REBUILD=1` — old images had root-owned dirs |
 | Harness missing agents/skills | `HARNESS_STATE=1` |
 | `stow` fails: target exists | Remove `~/.local/bin/agent-sandbox`, re-run `./setup.sh` |
-| Images stale after repo move | `REBUILD=1 ./run.sh` |
+| Images stale after repo move | `REBUILD=1 ./scripts/run.sh` |
 
 ## Development
 
@@ -153,7 +155,8 @@ See [AGENTS.md](AGENTS.md) for contributor guidelines.
 
 **Add a stack**: create `stacks/<name>/Containerfile` with `ARG BASE_IMAGE` +
 `FROM ${BASE_IMAGE}`. Add `RUN chown -R agent:agent /home/agent` if the install
-creates files in `$HOME`.
+creates files in `$HOME`. Always use `-f <path>/Containerfile` in build commands
+(Docker BuildKit only auto-discovers `Dockerfile`, not `Containerfile`).
 
 **Add a harness**: create `base/harness/<name>.sh` (pinned versions). Register in
 `lib/prompts.sh` (`HARNESSES`), `lib/credentials.sh` (API keys), `lib/state.sh` (state mapping).
@@ -167,7 +170,7 @@ See [PLAN.md](PLAN.md) for full details.
 | 1 | ~~Mise tasks~~ | ✅ |
 | 2 | ~~Docker CI matrix~~ | ✅ |
 | 3 | Chezmoi support (alternative to Stow) | P2 |
-| 4 | Config validation (`--check`) | P2 |
+| 4 | ~~Config validation (`--check`)~~ | ✅ |
 | 5 | New stacks: Go, Zig | P2 |
 | 6 | TUI UX improvements | P2 |
 | 7 | Windows host support (WSL2 / native) | P2 |
