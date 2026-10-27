@@ -4,6 +4,7 @@ Future improvements, ordered by priority. Not scheduled — pick when relevant.
 
 | # | Feature | Priority | Section |
 |---|---------|----------|---------|
+| **0** | **Switch to AGPL-3.0 license** | **🔴 P0** | [#0](#0-switch-to-agpl-30-license-p0) |
 | 1 | Mise tasks for scripting | P1 | [#1](#1-mise-tasks-for-scripting-p1) |
 | 2 | Docker testing in CI | **P1** | [#2](#2-docker-testing-in-ci-p1) |
 | 3 | Chezmoi support | P2 | [#3](#3-chezmoi-support-p2) |
@@ -12,6 +13,42 @@ Future improvements, ordered by priority. Not scheduled — pick when relevant.
 | 6 | TUI UX improvements | P2 | [#6](#6-tui-ux-improvements-p2) |
 | 7 | Windows host support | P2 | [#7](#7-windows-host-support-p2) |
 | 8 | Other ideas | P3 | [#8](#8-other-ideas-p3-unscheduled) |
+
+---
+
+## 0. Switch to AGPL-3.0 license (P0)
+
+> **🔴 TOP PRIORITY — do this first.** License change affects all users and contributors. Decide before building more features on top of the wrong license.
+
+**Goal:** Change license from MIT to GNU Affero General Public License v3.
+
+**Why:**
+- MIT is permissive — allows proprietary forks and closed-source derivatives
+- AGPL-3.0 is strong copyleft — forces all derivatives to be open source
+- AGPL closes the "ASP loophole" — even SaaS/network use requires sharing source
+- Free for personal use (no restrictions)
+- OSI + FSF approved, includes explicit patent grant
+
+**Considerations:**
+- **Breaking change for existing users** — anyone with a proprietary fork must relicense or stop using
+- **Contributor agreement** — consider requiring contributors to assign copyright or sign a CLA if you want to dual-license commercially later
+- **Dependencies** — all current dependencies (bash, podman, npm packages) are compatible with AGPL
+- **Alternatives:** GPL-3.0 (simpler, no network clause), MPL-2.0 (weak copyleft, file-level)
+
+**Changes:**
+- Replace `LICENSE` with AGPL-3.0 full text
+- Update `README.md` license section: `AGPL-3.0 — see [LICENSE](LICENSE)`
+- Add SPDX license header to all source files:
+  ```bash
+  # SPDX-License-Identifier: AGPL-3.0-or-later
+  ```
+- Update `PLAN.md` if it mentions licensing
+- Announce in commit message / release notes (breaking change)
+
+**Files:**
+- Replace: `LICENSE`
+- Modify: `README.md`, all `*.sh`, `*.yml`, `Containerfile`, `*.md`
+- New: `.github/COPYING` (optional, for GitHub license detection)
 
 ---
 
