@@ -36,9 +36,9 @@ description = "Run agent-sandbox from source (no install needed)"
 run = "./scripts/run.sh"
 
 [tasks.build]
-description = "Build base-tools image"
-run = "podman build --build-arg UID=$(id -u) --build-arg GID=$(id -g) -t localhost/agent-sandbox:base-tools base/"
+description = "Build base-tools image (uses $CONTAINER_RUNTIME, default: podman)"
+run = "${CONTAINER_RUNTIME:-podman} build --build-arg UID=$(id -u) --build-arg GID=$(id -g) -t localhost/agent-sandbox:base-tools base/"
 
 [tasks.clean]
 description = "Remove all agent-sandbox images"
-run = "podman rmi -f $(podman images -q localhost/agent-sandbox) 2>/dev/null || true"
+run = "R=${CONTAINER_RUNTIME:-podman}; $R rmi -f $($R images -q localhost/agent-sandbox) 2>/dev/null || true"

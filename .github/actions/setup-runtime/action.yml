@@ -1,0 +1,17 @@
+name: Setup container runtime
+description: Install podman or verify pre-installed docker
+inputs:
+  runtime:
+    description: Container runtime (podman or docker)
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Install podman
+      if: inputs.runtime == 'podman'
+      shell: bash
+      run: sudo apt-get update && sudo apt-get install -y podman
+
+    - name: Verify runtime
+      shell: bash
+      run: ${{ inputs.runtime }} --version

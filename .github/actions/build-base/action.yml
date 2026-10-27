@@ -1,0 +1,18 @@
+name: Build base images
+description: Build base-tools and optionally base-tools-<harness>
+inputs:
+  runtime:
+    description: Container runtime (podman or docker)
+    required: true
+  harness:
+    description: Harness to install on base-tools (optional)
+    required: false
+    default: ''
+runs:
+  using: composite
+  steps:
+    - name: Build base images
+      shell: bash
+      env:
+        CONTAINER_RUNTIME: ${{ inputs.runtime }}
+      run: scripts/ci-setup.sh ${{ inputs.harness }}

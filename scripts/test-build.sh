@@ -11,11 +11,12 @@ bad() { echo "  ✗ $*" >&2; fail=$((fail+1)); }
 step() { echo; echo "==> $*"; }
 
 IMG="localhost/agent-sandbox"
+RUNTIME="${CONTAINER_RUNTIME:-podman}"
 UID_ARG="$(id -u)"
 GID_ARG="$(id -g)"
 
 step "Build: base-tools"
-if podman build --build-arg UID="$UID_ARG" --build-arg GID="$GID_ARG" \
+if "$RUNTIME" build --build-arg UID="$UID_ARG" --build-arg GID="$GID_ARG" \
      -t "$IMG:base-tools" "$ROOT/base" 2>&1 | tail -1; then
     ok "base-tools built"
 else
@@ -31,7 +32,7 @@ tmpfile=$(mktemp)
     echo "RUN chown -R agent:agent /home/agent"
     echo "USER agent"
 } > "$tmpfile"
-if podman build --build-arg UID="$UID_ARG" --build-arg GID="$GID_ARG" \
+if "$RUNTIME" build --build-arg UID="$UID_ARG" --build-arg GID="$GID_ARG" \
      -t "$IMG:base-tools-claude" -f "$tmpfile" "$ROOT/base" 2>&1 | tail -1; then
     ok "base-tools-claude built"
 else
@@ -40,7 +41,7 @@ fi
 rm -f "$tmpfile"
 
 step "Build: python + claude"
-if podman build --build-arg UID="$UID_ARG" --build-arg GID="$GID_ARG" \
+if "$RUNTIME" build --build-arg UID="$UID_ARG" --build-arg GID="$GID_ARG" \
      --build-arg BASE_IMAGE="$IMG:base-tools-claude" \
      -t "$IMG:python-claude" "$ROOT/stacks/python/" 2>&1 | tail -1; then
     ok "python-claude built"
@@ -49,7 +50,7 @@ else
 fi
 
 step "Build: python + manual (no harness)"
-if podman build --build-arg UID="$UID_ARG" --build-arg GID="$GID_ARG" \
+if "$RUNTIME" build --build-arg UID="$UID_ARG" --build-arg GID="$GID_ARG" \
      --build-arg BASE_IMAGE="$IMG:base-tools" \
      -t "$IMG:python-manual" "$ROOT/stacks/python/" 2>&1 | tail -1; then
     ok "python-manual built"
@@ -58,14 +59,14 @@ else
 fi
 
 step "Build: multi-level chain (clojure → web-cljs)"
-if podman build --build-arg UID="$UID_ARG" --build-arg GID="$GID_ARG" \
+if "$RUNTIME" build --build-arg UID="$UID_ARG" --build-arg GID="$GID_ARG" \
      --build-arg BASE_IMAGE="$IMG:base-tools-claude" \
      -t "$IMG:clojure-claude" "$ROOT/stacks/clojure/" 2>&1 | tail -1; then
     ok "clojure-claude built"
 else
     bad "clojure-claude build failed"
 fi
-if podman build --build-arg UID="$UID_ARG" --build-arg GID="$GID_ARG" \
+if "$RUNTIME" build --build-arg UID="$UID_ARG" --build-arg GID="$GID_ARG" \
      --build-arg BASE_IMAGE="$IMG:clojure-claude" \
      -t "$IMG:web-cljs-claude" "$ROOT/stacks/web-cljs/" 2>&1 | tail -1; then
     ok "web-cljs-claude built"

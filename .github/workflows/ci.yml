@@ -9,10 +9,12 @@ on:
 permissions:
   contents: read
 
+env:
+  IMG: localhost/agent-sandbox
+
 jobs:
-  # Lint and syntax-check all shell scripts (via mise)
   lint:
-    name: Lint shell scripts
+    name: Lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -29,129 +31,165 @@ jobs:
           export PATH="$HOME/.local/bin:$PATH"
           mise run lint
 
-  # Smoke test: build base-tools image
   build-base:
-    name: Build base-tools (smoke)
+    name: base-tools (${{ matrix.runtime }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        runtime: [podman, docker]
     steps:
       - uses: actions/checkout@v6
-      - name: Install podman
-        run: sudo apt-get update && sudo apt-get install -y podman
-      - name: Build base-tools
-        run: scripts/ci-setup.sh
-      - name: Verify
-        run: podman images localhost/agent-sandbox:base-tools
+      - uses: ./.github/actions/setup-runtime
+        with:
+          runtime: ${{ matrix.runtime }}
+      - uses: ./.github/actions/build-base
+        with:
+          runtime: ${{ matrix.runtime }}
+      - run: $CONTAINER_RUNTIME images $IMG:base-tools
+        env:
+          CONTAINER_RUNTIME: ${{ matrix.runtime }}
 
-  # Smart matrix: all harnesses × base stack
   test-harness:
-    name: Harness — ${{ matrix.harness }}
+    name: harness ${{ matrix.harness }} (${{ matrix.runtime }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         harness: [claude, opencode, vibe, pi]
+        runtime: [podman, docker]
     steps:
       - uses: actions/checkout@v6
-      - name: Install podman
-        run: sudo apt-get update && sudo apt-get install -y podman
-      - name: Build base-tools + ${{ matrix.harness }}
-        run: scripts/ci-setup.sh "${{ matrix.harness }}"
-      - name: Verify
-        run: podman images "localhost/agent-sandbox:base-tools-${{ matrix.harness }}"
+      - uses: ./.github/actions/setup-runtime
+        with:
+          runtime: ${{ matrix.runtime }}
+      - uses: ./.github/actions/build-base
+        with:
+          runtime: ${{ matrix.runtime }}
+          harness: ${{ matrix.harness }}
+      - run: $CONTAINER_RUNTIME images $IMG:base-tools-${{ matrix.harness }}
+        env:
+          CONTAINER_RUNTIME: ${{ matrix.runtime }}
 
-  # Smart matrix: all top-level stacks × [claude, opencode]
   test-stack:
-    name: Stack — ${{ matrix.stack }} / ${{ matrix.harness }}
+    name: ${{ matrix.stack }}/${{ matrix.harness }} (${{ matrix.runtime }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         stack: [python, node, rust, elixir, lua-nvim, clojure]
         harness: [claude, opencode]
+        runtime: [podman, docker]
     steps:
       - uses: actions/checkout@v6
-      - name: Install podman
-        run: sudo apt-get update && sudo apt-get install -y podman
-      - name: Build base + harness
-        run: scripts/ci-setup.sh "${{ matrix.harness }}"
-      - name: Build ${{ matrix.stack }}-${{ matrix.harness }}
+      - uses: ./.github/actions/setup-runtime
+        with:
+          runtime: ${{ matrix.runtime }}
+      - uses: ./.github/actions/build-base
+        with:
+          runtime: ${{ matrix.runtime }}
+          harness: ${{ matrix.harness }}
+      - name: Build stack
         run: |
-          podman build --build-arg UID=1000 --build-arg GID=1000 \
-            --build-arg BASE_IMAGE="localhost/agent-sandbox:base-tools-${{ matrix.harness }}" \
-            -t "localhost/agent-sandbox:${{ matrix.stack }}-${{ matrix.harness }}" \
+          $CONTAINER_RUNTIME build --build-arg UID=1000 --build-arg GID=1000 \
+            --build-arg BASE_IMAGE="$IMG:base-tools-${{ matrix.harness }}" \
+            -t "$IMG:${{ matrix.stack }}-${{ matrix.harness }}" \
             "stacks/${{ matrix.stack }}/"
-      - name: Verify
-        run: podman images "localhost/agent-sandbox:${{ matrix.stack }}-${{ matrix.harness }}"
+        env:
+          CONTAINER_RUNTIME: ${{ matrix.runtime }}
+      - run: $CONTAINER_RUNTIME images $IMG:${{ matrix.stack }}-${{ matrix.harness }}
+        env:
+          CONTAINER_RUNTIME: ${{ matrix.runtime }}
 
-  # Manual mode: stack builds directly on base-tools (no harness layer)
   test-manual:
-    name: Manual — ${{ matrix.stack }}
+    name: manual/${{ matrix.stack }} (${{ matrix.runtime }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         stack: [python, node]
+        runtime: [podman, docker]
     steps:
       - uses: actions/checkout@v6
-      - name: Install podman
-        run: sudo apt-get update && sudo apt-get install -y podman
-      - name: Build base-tools
-        run: scripts/ci-setup.sh
-      - name: Build ${{ matrix.stack }}-manual
+      - uses: ./.github/actions/setup-runtime
+        with:
+          runtime: ${{ matrix.runtime }}
+      - uses: ./.github/actions/build-base
+        with:
+          runtime: ${{ matrix.runtime }}
+      - name: Build stack (manual)
         run: |
-          podman build --build-arg UID=1000 --build-arg GID=1000 \
-            --build-arg BASE_IMAGE=localhost/agent-sandbox:base-tools \
-            -t "localhost/agent-sandbox:${{ matrix.stack }}-manual" \
+          $CONTAINER_RUNTIME build --build-arg UID=1000 --build-arg GID=1000 \
+            --build-arg BASE_IMAGE="$IMG:base-tools" \
+            -t "$IMG:${{ matrix.stack }}-manual" \
             "stacks/${{ matrix.stack }}/"
-      - name: Verify
-        run: podman images "localhost/agent-sandbox:${{ matrix.stack }}-manual"
+        env:
+          CONTAINER_RUNTIME: ${{ matrix.runtime }}
+      - run: $CONTAINER_RUNTIME images $IMG:${{ matrix.stack }}-manual
+        env:
+          CONTAINER_RUNTIME: ${{ matrix.runtime }}
 
-  # Smart matrix: chains × [claude, opencode]
   test-chain-web:
-    name: Chain web-cljs — ${{ matrix.harness }}
+    name: chain web-cljs/${{ matrix.harness }} (${{ matrix.runtime }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         harness: [claude, opencode]
+        runtime: [podman, docker]
     steps:
       - uses: actions/checkout@v6
-      - name: Install podman
-        run: sudo apt-get update && sudo apt-get install -y podman
+      - uses: ./.github/actions/setup-runtime
+        with:
+          runtime: ${{ matrix.runtime }}
+      - uses: ./.github/actions/build-base
+        with:
+          runtime: ${{ matrix.runtime }}
+          harness: ${{ matrix.harness }}
       - name: Build chain
         run: |
-          scripts/ci-setup.sh "${{ matrix.harness }}"
-          podman build --build-arg UID=1000 --build-arg GID=1000 \
-            --build-arg BASE_IMAGE="localhost/agent-sandbox:base-tools-${{ matrix.harness }}" \
-            -t "localhost/agent-sandbox:clojure-${{ matrix.harness }}" stacks/clojure/
-          podman build --build-arg UID=1000 --build-arg GID=1000 \
-            --build-arg BASE_IMAGE="localhost/agent-sandbox:clojure-${{ matrix.harness }}" \
-            -t "localhost/agent-sandbox:web-cljs-${{ matrix.harness }}" stacks/web-cljs/
-      - name: Verify
-        run: podman images "localhost/agent-sandbox:web-cljs-${{ matrix.harness }}"
+          $CONTAINER_RUNTIME build --build-arg UID=1000 --build-arg GID=1000 \
+            --build-arg BASE_IMAGE="$IMG:base-tools-${{ matrix.harness }}" \
+            -t "$IMG:clojure-${{ matrix.harness }}" stacks/clojure/
+          $CONTAINER_RUNTIME build --build-arg UID=1000 --build-arg GID=1000 \
+            --build-arg BASE_IMAGE="$IMG:clojure-${{ matrix.harness }}" \
+            -t "$IMG:web-cljs-${{ matrix.harness }}" stacks/web-cljs/
+        env:
+          CONTAINER_RUNTIME: ${{ matrix.runtime }}
+      - run: $CONTAINER_RUNTIME images $IMG:web-cljs-${{ matrix.harness }}
+        env:
+          CONTAINER_RUNTIME: ${{ matrix.runtime }}
 
   test-chain-rn:
-    name: Chain react-native — ${{ matrix.harness }}
+    name: chain react-native/${{ matrix.harness }} (${{ matrix.runtime }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         harness: [claude, opencode]
+        runtime: [podman, docker]
     steps:
       - uses: actions/checkout@v6
-      - name: Install podman
-        run: sudo apt-get update && sudo apt-get install -y podman
+      - uses: ./.github/actions/setup-runtime
+        with:
+          runtime: ${{ matrix.runtime }}
+      - uses: ./.github/actions/build-base
+        with:
+          runtime: ${{ matrix.runtime }}
+          harness: ${{ matrix.harness }}
       - name: Build chain
         run: |
-          scripts/ci-setup.sh "${{ matrix.harness }}"
-          podman build --build-arg UID=1000 --build-arg GID=1000 \
-            --build-arg BASE_IMAGE="localhost/agent-sandbox:base-tools-${{ matrix.harness }}" \
-            -t "localhost/agent-sandbox:clojure-${{ matrix.harness }}" stacks/clojure/
-          podman build --build-arg UID=1000 --build-arg GID=1000 \
-            --build-arg BASE_IMAGE="localhost/agent-sandbox:clojure-${{ matrix.harness }}" \
-            -t "localhost/agent-sandbox:web-cljs-${{ matrix.harness }}" stacks/web-cljs/
-          podman build --build-arg UID=1000 --build-arg GID=1000 \
-            --build-arg BASE_IMAGE="localhost/agent-sandbox:web-cljs-${{ matrix.harness }}" \
-            -t "localhost/agent-sandbox:react-native-cljs-${{ matrix.harness }}" stacks/react-native-cljs/
-      - name: Verify
-        run: podman images "localhost/agent-sandbox:react-native-cljs-${{ matrix.harness }}"
+          $CONTAINER_RUNTIME build --build-arg UID=1000 --build-arg GID=1000 \
+            --build-arg BASE_IMAGE="$IMG:base-tools-${{ matrix.harness }}" \
+            -t "$IMG:clojure-${{ matrix.harness }}" stacks/clojure/
+          $CONTAINER_RUNTIME build --build-arg UID=1000 --build-arg GID=1000 \
+            --build-arg BASE_IMAGE="$IMG:clojure-${{ matrix.harness }}" \
+            -t "$IMG:web-cljs-${{ matrix.harness }}" stacks/web-cljs/
+          $CONTAINER_RUNTIME build --build-arg UID=1000 --build-arg GID=1000 \
+            --build-arg BASE_IMAGE="$IMG:web-cljs-${{ matrix.harness }}" \
+            -t "$IMG:react-native-cljs-${{ matrix.harness }}" stacks/react-native-cljs/
+        env:
+          CONTAINER_RUNTIME: ${{ matrix.runtime }}
+      - run: $CONTAINER_RUNTIME images $IMG:react-native-cljs-${{ matrix.harness }}
+        env:
+          CONTAINER_RUNTIME: ${{ matrix.runtime }}
