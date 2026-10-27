@@ -37,9 +37,9 @@ echo
 # ── Step 1: Check tools ─────────────────────────────────────────
 step "Step 1/6: Checking required tools"
 if ! missing="$("$HOST/check_tools.sh" 2>&1)"; then
-    fail "Missing tools: $(echo $missing | tr '\n' ' ')"
+    fail "Missing tools: $(echo "$missing" | tr '\n' ' ')"
     echo
-    "$HOST/show_install_help.sh" $missing
+    "$HOST/show_install_help.sh" $missing  # word-split intentional: list of tools
     exit 1
 fi
 ok "All required tools found (stow, container runtime)"
@@ -47,17 +47,17 @@ ok "All required tools found (stow, container runtime)"
 # ── Step 2: Stow ────────────────────────────────────────────────
 step "Step 2/6: Setting up symlinks"
 "$HOST/stow.sh" "$ROOT"
-ok "Installed to ~/.local/bin/agent-sandbox"
+ok "Installed to $HOME/.local/bin/agent-sandbox"
 
 # ── Step 3: Config ──────────────────────────────────────────────
 step "Step 3/6: Creating default config"
 "$HOST/create_config.sh" "$ROOT"
-ok "Config ready at ~/.config/agent-sandbox/config"
+ok "Config ready at $HOME/.config/agent-sandbox/config"
 
 # ── Step 4: Check PATH ──────────────────────────────────────────
 step "Step 4/6: Checking PATH"
 if "$HOST/check_path.sh" 2>&1; then
-    ok '$HOME/.local/bin is in PATH'
+    ok "$HOME/.local/bin is in PATH"
 else
     warn "PATH needs updating — follow the instructions above"
 fi
@@ -87,6 +87,6 @@ echo "Next steps:"
 echo "  1. Reload your shell or start a new terminal"
 echo "  2. Run: ${BOLD}agent-sandbox${NC}"
 echo
-echo "Configuration: ~/.config/agent-sandbox/config"
+echo "Configuration: $HOME/.config/agent-sandbox/config"
 echo "Documentation: README.md"
 echo

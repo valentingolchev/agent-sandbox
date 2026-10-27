@@ -27,7 +27,7 @@ case "$shell_name" in
         ;;
     zsh)  config_file="$HOME/.zshrc" ;;
     fish)
-        echo "For fish, add to ~/.config/fish/config.fish:"
+        echo "For fish, add to $HOME/.config/fish/config.fish:"
         echo
         echo "    set -U fish_user_paths \$HOME/.local/bin \$fish_user_paths"
         echo

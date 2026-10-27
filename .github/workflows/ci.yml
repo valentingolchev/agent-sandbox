@@ -32,6 +32,8 @@ jobs:
           # Also check scripts without .sh extension
           bash -n .local/bin/agent-sandbox
           bash -n install.sh
+          bash -n run.sh
+          bash -n test.sh
 
   # Build base-tools image to verify the Containerfile
   # (Stacks and harnesses are composed at runtime, so no matrix needed)

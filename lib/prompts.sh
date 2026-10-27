@@ -110,7 +110,7 @@ choose_stack() {
         # Only strip if the result is a known stack (safe for lua-nvim, web-cljs, etc.)
         local h stripped
         for h in claude opencode vibe pi; do
-            stripped="${choice%-${h}}"
+            stripped="${choice%-"${h}"}"
             if [[ -n "${STACK_PARENT[$stripped]+x}" ]]; then
                 choice="$stripped"
                 break

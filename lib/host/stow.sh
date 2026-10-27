@@ -6,7 +6,7 @@ root="${1:?Usage: stow.sh <repo-root>}"
 
 info() { echo "  • $*"; }
 
-info "Creating ~/.local/bin..."
+info "Creating $HOME/.local/bin..."
 mkdir -p "$HOME/.local/bin"
 
 info "Creating symlinks..."
