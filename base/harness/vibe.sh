@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 # Vibe harness (Mistral).
 # Python-based, installed with uv system-wide (never into /home/agent —
 # the run script mounts a tmpfs over it, which would mask it).

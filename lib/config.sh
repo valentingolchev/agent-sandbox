@@ -52,6 +52,7 @@ load_config() {
     done
     for key in "${!pairs[@]}"; do
         if [[ "$key" == "$best|"* ]]; then
+            # shellcheck disable=SC2034  # CONFIG is used by main script via sourcing
             CONFIG["${key##*|}"]="${pairs[$key]}"
         fi
     done

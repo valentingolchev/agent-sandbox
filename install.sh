@@ -57,7 +57,7 @@ ok "Config ready at ~/.config/agent-sandbox/config"
 # ── Step 4: Check PATH ──────────────────────────────────────────
 step "Step 4/6: Checking PATH"
 if "$HOST/check_path.sh" 2>&1; then
-    ok "~/.local/bin is in PATH"
+    ok '$HOME/.local/bin is in PATH'
 else
     warn "PATH needs updating — follow the instructions above"
 fi

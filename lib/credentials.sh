@@ -67,11 +67,12 @@ KEYRING_ENV_FILE=""
 # when secret-tool or the keyring is unavailable (headless hosts).
 # Env vars already passed win.
 retrieve_keyring_secrets() {
-    local entry key service secret f
+    local key service secret f
     command -v secret-tool >/dev/null 2>&1 || return 0
     [ -d "/run/user/$(id -u)" ] || return 0
     if [ -z "${DBUS_SESSION_BUS_ADDRESS:-}" ] && [ -S "/run/user/$(id -u)/bus" ]; then
-        export DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$(id -u)/bus"
+        DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$(id -u)/bus"
+        export DBUS_SESSION_BUS_ADDRESS
     fi
 
     local harness_entry="${HARNESS_KEYRING[${HARNESS_NAME:-manual}]:-}"
@@ -90,6 +91,7 @@ retrieve_keyring_secrets() {
 
     f="$(mktemp "/run/user/$(id -u)/agent-sandbox-env.XXXXXX")" || return 0
     chmod 600 "$f"
+    # shellcheck disable=SC2034  # used by main script via sourcing
     KEYRING_ENV_FILE="$f"
     printf '%s=%s\n' "$key" "$secret" >> "$f"
     PASSED_ENV[$key]=1

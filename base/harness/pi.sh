@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 # Pi coding agent harness (@earendil-works/pi-coding-agent).
 # Installed via npm with --ignore-scripts (per pi's docs recommendation).
 # Version pinned: 1.4.0 (update deliberately, check security advisories)

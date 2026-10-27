@@ -20,12 +20,12 @@ shell_name="$(basename "${SHELL:-bash}")"
 case "$shell_name" in
     bash)
         if [ -f "$HOME/.bash_profile" ]; then
-            config_file="~/.bash_profile"
+            config_file="$HOME/.bash_profile"
         else
-            config_file="~/.bashrc"
+            config_file="$HOME/.bashrc"
         fi
         ;;
-    zsh)  config_file="~/.zshrc" ;;
+    zsh)  config_file="$HOME/.zshrc" ;;
     fish)
         echo "For fish, add to ~/.config/fish/config.fish:"
         echo
@@ -34,7 +34,7 @@ case "$shell_name" in
         echo "Then reload: fish"
         exit 1
         ;;
-    *)    config_file="~/.${shell_name}rc" ;;
+    *)    config_file="$HOME/.${shell_name}rc" ;;
 esac
 
 echo "Edit: $config_file"
