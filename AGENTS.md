@@ -15,6 +15,11 @@ Guidelines for AI agents (claude, opencode, pi, vibe) working on this repo.
 
 **Push:** Only when explicitly asked. Use `--force-with-lease` for rewritten history.
 
+**🚨 CRITICAL: Before every commit, assess if README.md needs updating.**
+If the commit changes user-facing behavior (env vars, config keys, stacks,
+harnesses, install steps, security model), update README.md in the same commit.
+Don't commit code changes that make the README stale.
+
 ---
 
 ## Script Architecture
@@ -64,6 +69,18 @@ set -euo pipefail
 - Use `local` for function variables
 - Quote variables: `"$var"`
 - Functions: `snake_case`, Variables: `UPPER_CASE` for globals
+
+---
+
+## Documentation (README.md)
+
+- **Terse.** Bare essentials. No filler, no repetition, no marketing language.
+- **Technical terms exact.** Use real names: `HARNESS_STATE`, `base-tools`, `agent-sandbox:python-claude`.
+- **Tables over prose** for reference data (env vars, stacks, harnesses).
+- **Code blocks** for commands and config examples.
+- **Keep in sync.** Every user-facing change must update README in the same commit.
+- **Assess before finishing a task:** "Does this change affect what a user sees or does?"
+  If yes, update README before declaring done.
 
 ---
 
