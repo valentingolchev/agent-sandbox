@@ -21,11 +21,11 @@ run = "./lib/host/install.sh"
 
 [tasks.lint]
 description = "Shellcheck + bash syntax check"
-run = "./lint.sh"
+run = "./scripts/lint.sh"
 
 [tasks."test-build"]
 description = "Build and test image composition"
-run = "./test-build.sh"
+run = "./scripts/test-build.sh"
 
 [tasks.test]
 description = "Run all checks (lint + build tests)"
@@ -33,7 +33,7 @@ depends = ["lint", "test-build"]
 
 [tasks.start]
 description = "Run agent-sandbox from source (no install needed)"
-run = "./run.sh"
+run = "./scripts/run.sh"
 
 [tasks.build]
 description = "Build base-tools image"

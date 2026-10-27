@@ -3,7 +3,7 @@
 # Prefer: mise run test   (or: mise run lint / mise run test-build)
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-"$ROOT/lint.sh"
-"$ROOT/test-build.sh"
+"$ROOT/scripts/lint.sh"
+"$ROOT/scripts/test-build.sh"

@@ -2,7 +2,7 @@
 # lint.sh — shellcheck + bash syntax check.
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 pass=0
 fail=0
@@ -29,7 +29,7 @@ local_ok=1
 while IFS= read -r -d '' f; do
     bash -n "$f" || local_ok=0
 done < <(find "$ROOT" -name '*.sh' -not -path '*/.git/*' -print0)
-for f in .local/bin/agent-sandbox setup.sh run.sh lint.sh test-build.sh test.sh; do
+for f in .local/bin/agent-sandbox setup.sh scripts/run.sh scripts/lint.sh scripts/test-build.sh scripts/test.sh; do
     bash -n "$ROOT/$f" || local_ok=0
 done
 if [ "$local_ok" -eq 1 ]; then

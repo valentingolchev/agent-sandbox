@@ -133,11 +133,11 @@ mise run start              # run agent-sandbox from source
 mise run build              # build base-tools image
 mise run clean              # remove all agent-sandbox images
 
-# Without mise (bootstrap installs it):
-./setup.sh                  # installs mise, then runs mise run setup
-./test.sh                   # all checks (lint.sh + test-build.sh)
-./lint.sh                   # lint only
-./run.sh                    # run from source
+# Entry points (scripts/ has the rest):
+./setup.sh                  # bootstrap mise + setup
+./scripts/run.sh            # run from source (no mise needed)
+./scripts/test.sh           # all checks (no mise needed)
+./scripts/lint.sh           # lint only (no mise needed)
 ```
 
 See [AGENTS.md](AGENTS.md) for contributor guidelines.

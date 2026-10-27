@@ -95,10 +95,10 @@ set -euo pipefail
 | List all tasks | `mise tasks` |
 | Set up | `mise run setup` (or `./setup.sh` to bootstrap mise) |
 | Run agent | `agent-sandbox` |
-| Run from source | `mise run start` (or `./run.sh`) |
-| **Run all checks** | **`mise run test`** (lint + build, or `./test.sh`) |
-| Lint only | `mise run lint` (or `./lint.sh`) |
-| Build tests only | `mise run test-build` (or `./test-build.sh`) |
+| Run from source | `mise run start` (or `./scripts/run.sh`) |
+| **Run all checks** | **`mise run test`** (lint + build, or `./scripts/test.sh`) |
+| Lint only | `mise run lint` (or `./scripts/lint.sh`) |
+| Build tests only | `mise run test-build` (or `./scripts/test-build.sh`) |
 | Build base-tools | `mise run build` |
 | Clean images | `mise run clean` |
 | Force rebuild | `REBUILD=1 agent-sandbox` |
