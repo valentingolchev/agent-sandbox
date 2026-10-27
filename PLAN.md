@@ -4,45 +4,17 @@ Future improvements, ordered by priority. Not scheduled — pick when relevant.
 
 | # | Feature | Priority | Section |
 |---|---------|----------|---------|
-| 1 | Mise tasks for scripting | P1 | [#1](#1-mise-tasks-for-scripting-p1) |
-| 2 | Docker testing in CI | **P1** | [#2](#2-docker-testing-in-ci-p1) |
-| 3 | Chezmoi support | P2 | [#3](#3-chezmoi-support-p2) |
-| 4 | Config validation | P2 | [#4](#4-config-validation-p2) |
-| 5 | New stacks: Go, Zig | P2 | [#5](#5-new-stacks-go-zig-p2) |
-| 6 | TUI UX improvements | P2 | [#6](#6-tui-ux-improvements-p2) |
-| 7 | Windows host support | P2 | [#7](#7-windows-host-support-p2) |
-| 8 | Other ideas | P3 | [#8](#8-other-ideas-p3-unscheduled) |
+| 1 | Docker testing in CI | **P1** | [#1](#1-docker-testing-in-ci-p1) |
+| 2 | Chezmoi support | P2 | [#2](#2-chezmoi-support-p2) |
+| 3 | Config validation | P2 | [#3](#3-config-validation-p2) |
+| 4 | New stacks: Go, Zig | P2 | [#4](#4-new-stacks-go-zig-p2) |
+| 5 | TUI UX improvements | P2 | [#5](#5-tui-ux-improvements-p2) |
+| 6 | Windows host support | P2 | [#6](#6-windows-host-support-p2) |
+| 7 | Other ideas | P3 | [#7](#7-other-ideas-p3-unscheduled) |
 
 ---
 
-## 1. Mise tasks for scripting (P1)
-
-**Goal:** Replace ad-hoc bash script invocations with `mise` tasks. Bash only for bootstrapping mise itself.
-
-**Why:**
-- Consistent task runner across the project (`mise run <task>`)
-- mise already in base image — no new dependency
-- Task dependencies, env vars, and descriptions in one place (`mise.toml`)
-- Easier to discover (`mise tasks` lists everything)
-
-**Changes:**
-- Add `mise.toml` at repo root with tasks:
-  - `install` → `./install.sh`
-  - `test` → `./test.sh "$@"`
-  - `run` → `./run.sh "$@"`
-  - `lint` → shellcheck + bash -n
-  - `build` → build base-tools image
-  - `clean` → remove all agent-sandbox images
-- Keep `install.sh`, `test.sh`, `run.sh` as thin wrappers (mise tasks call them)
-- Bootstrap: `install.sh` checks for mise, installs if missing (curl script), then delegates
-
-**Files:**
-- New: `mise.toml`
-- Modify: `install.sh` (mise bootstrap), `README.md`, `AGENTS.md`
-
----
-
-## 2. Docker testing in CI (P1)
+## 1. Docker testing in CI (P1)
 
 **Goal:** Test with Docker in addition to Podman in CI.
 
@@ -70,7 +42,7 @@ Future improvements, ordered by priority. Not scheduled — pick when relevant.
 
 ---
 
-## 3. Chezmoi support (P2)
+## 2. Chezmoi support (P2)
 
 **Goal:** Allow Chezmoi as an alternative to Stow for symlinking the runner into `~/.local/bin`.
 
@@ -94,7 +66,7 @@ Future improvements, ordered by priority. Not scheduled — pick when relevant.
 
 ---
 
-## 4. Config validation (P2)
+## 3. Config validation (P2)
 
 **Goal:** Add `agent-sandbox --check` to validate the config file before running.
 
@@ -124,7 +96,7 @@ Future improvements, ordered by priority. Not scheduled — pick when relevant.
 
 ---
 
-## 5. New stacks: Go, Zig (P2)
+## 4. New stacks: Go, Zig (P2)
 
 **Goal:** Add Go and Zig development stacks.
 
@@ -174,7 +146,7 @@ USER agent
 
 ---
 
-## 6. TUI UX improvements (P2)
+## 5. TUI UX improvements (P2)
 
 **Goal:** Better interactive experience when picking stack/harness and managing state.
 
@@ -209,7 +181,7 @@ USER agent
 
 ---
 
-## 7. Windows host support (P2)
+## 6. Windows host support (P2)
 
 **Goal:** Run agent-sandbox on Windows hosts (WSL2 or native with Docker Desktop).
 
@@ -255,7 +227,7 @@ USER agent
 
 ---
 
-## 8. Other ideas (P3, unscheduled)
+## 7. Other ideas (P3, unscheduled)
 
 ### Harness: aider
 
