@@ -139,7 +139,18 @@ creates files in `$HOME`.
 
 ## Roadmap
 
-See [PLAN.md](PLAN.md) for planned features (mise tasks, Chezmoi support, TUI improvements).
+See [PLAN.md](PLAN.md) for full details.
+
+| # | Feature | Priority |
+|---|---------|----------|
+| 1 | Mise tasks for scripting | P1 |
+| 2 | Chezmoi support (alternative to Stow) | P2 |
+| 3 | Config validation (`--check`) | P2 |
+| 4 | New stacks: Go, Zig | P2 |
+| 5 | Docker testing in CI | P2 |
+| 6 | TUI UX improvements | P2 |
+| 7 | Windows host support (WSL2 / native) | P2 |
+| 8 | Other ideas (aider, macOS CI, completions, more) | P3 |
 
 ## License
 
