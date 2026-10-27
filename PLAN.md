@@ -5,10 +5,10 @@ Future improvements, ordered by priority. Not scheduled — pick when relevant.
 | # | Feature | Priority | Section |
 |---|---------|----------|---------|
 | 1 | Mise tasks for scripting | P1 | [#1](#1-mise-tasks-for-scripting-p1) |
-| 2 | Chezmoi support | P2 | [#2](#2-chezmoi-support-p2) |
-| 3 | Config validation | P2 | [#3](#3-config-validation-p2) |
-| 4 | New stacks: Go, Zig | P2 | [#4](#4-new-stacks-go-zig-p2) |
-| 5 | Docker testing in CI | P2 | [#5](#5-docker-testing-in-ci-p2) |
+| 2 | Docker testing in CI | **P1** | [#2](#2-docker-testing-in-ci-p1) |
+| 3 | Chezmoi support | P2 | [#3](#3-chezmoi-support-p2) |
+| 4 | Config validation | P2 | [#4](#4-config-validation-p2) |
+| 5 | New stacks: Go, Zig | P2 | [#5](#5-new-stacks-go-zig-p2) |
 | 6 | TUI UX improvements | P2 | [#6](#6-tui-ux-improvements-p2) |
 | 7 | Windows host support | P2 | [#7](#7-windows-host-support-p2) |
 | 8 | Other ideas | P3 | [#8](#8-other-ideas-p3-unscheduled) |
@@ -42,7 +42,35 @@ Future improvements, ordered by priority. Not scheduled — pick when relevant.
 
 ---
 
-## 2. Chezmoi support (P2)
+## 2. Docker testing in CI (P1)
+
+**Goal:** Test with Docker in addition to Podman in CI.
+
+**Why:**
+- CI only tests podman — Docker users may hit different bugs
+- Docker is the default on macOS and many Linux setups
+- Catch runtime-specific issues (userns, SELinux, mounts)
+- **Top priority: CI failures are blockers — need Docker coverage ASAP**
+
+**Changes:**
+- Add `CONTAINER_RUNTIME` matrix to CI workflow:
+  ```yaml
+  strategy:
+    matrix:
+      runtime: [podman, docker]
+  ```
+- Docker requires `sudo` on GitHub runners — use `docker` service or `sudo docker`
+- `test.sh`: accept `--runtime docker` flag, pass through to builds
+- `lib/runtime.sh`: ensure `user_args()` and `security_opts()` work for both
+- Document any Docker-specific quirks in README
+
+**Files:**
+- Modify: `.github/workflows/ci.yml` (matrix), `test.sh` (--runtime flag)
+- Modify: `README.md` (Docker notes)
+
+---
+
+## 3. Chezmoi support (P2)
 
 **Goal:** Allow Chezmoi as an alternative to Stow for symlinking the runner into `~/.local/bin`.
 
@@ -66,7 +94,7 @@ Future improvements, ordered by priority. Not scheduled — pick when relevant.
 
 ---
 
-## 3. Config validation (P2)
+## 4. Config validation (P2)
 
 **Goal:** Add `agent-sandbox --check` to validate the config file before running.
 
@@ -96,7 +124,7 @@ Future improvements, ordered by priority. Not scheduled — pick when relevant.
 
 ---
 
-## 4. New stacks: Go, Zig (P2)
+## 5. New stacks: Go, Zig (P2)
 
 **Goal:** Add Go and Zig development stacks.
 
@@ -143,33 +171,6 @@ USER agent
 - New: `stacks/go/Containerfile`, `stacks/zig/Containerfile`
 - Modify: `README.md` (add to stacks table)
 - Modify: `test.sh` (add go/zig to build tests, or separate optional test)
-
----
-
-## 5. Docker testing in CI (P2)
-
-**Goal:** Test with Docker in addition to Podman in CI.
-
-**Why:**
-- CI only tests podman — Docker users may hit different bugs
-- Docker is the default on macOS and many Linux setups
-- Catch runtime-specific issues (userns, SELinux, mounts)
-
-**Changes:**
-- Add `CONTAINER_RUNTIME` matrix to CI workflow:
-  ```yaml
-  strategy:
-    matrix:
-      runtime: [podman, docker]
-  ```
-- Docker requires `sudo` on GitHub runners — use `docker` service or `sudo docker`
-- `test.sh`: accept `--runtime docker` flag, pass through to builds
-- `lib/runtime.sh`: ensure `user_args()` and `security_opts()` work for both
-- Document any Docker-specific quirks in README
-
-**Files:**
-- Modify: `.github/workflows/ci.yml` (matrix), `test.sh` (--runtime flag)
-- Modify: `README.md` (Docker notes)
 
 ---
 
