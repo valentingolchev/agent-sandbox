@@ -16,19 +16,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-
       - name: Install mise
         run: curl -fsSL https://mise.run | sh
-
       - name: Validate mise.toml
         run: |
           export PATH="$HOME/.local/bin:$PATH"
           mise tasks
-
       - name: Install shellcheck
         run: sudo apt-get update && sudo apt-get install -y shellcheck
-
-      - name: Lint (mise run lint)
+      - name: Lint
         run: |
           export PATH="$HOME/.local/bin:$PATH"
           mise run lint
@@ -42,13 +38,11 @@ jobs:
       - name: Install podman
         run: sudo apt-get update && sudo apt-get install -y podman
       - name: Build base-tools
-        run: |
-          podman build --build-arg UID=1000 --build-arg GID=1000 \
-            -t localhost/agent-sandbox:base-tools base/
+        run: scripts/ci-setup.sh
       - name: Verify
         run: podman images localhost/agent-sandbox:base-tools
 
-  # Parallel: test each harness composition independently
+  # Smart matrix: all harnesses × base stack
   test-harness:
     name: Harness — ${{ matrix.harness }}
     runs-on: ubuntu-latest
@@ -60,151 +54,104 @@ jobs:
       - uses: actions/checkout@v6
       - name: Install podman
         run: sudo apt-get update && sudo apt-get install -y podman
-      - name: Build base-tools
-        run: |
-          podman build --build-arg UID=1000 --build-arg GID=1000 \
-            -t localhost/agent-sandbox:base-tools base/
       - name: Build base-tools + ${{ matrix.harness }}
-        run: |
-          tmpfile=$(mktemp)
-          {
-            echo "FROM localhost/agent-sandbox:base-tools"
-            echo "USER root"
-            cat "base/harness/${{ matrix.harness }}.sh"
-            echo "RUN chown -R agent:agent /home/agent"
-            echo "USER agent"
-          } > "$tmpfile"
-          podman build --build-arg UID=1000 --build-arg GID=1000 \
-            -t "localhost/agent-sandbox:base-tools-${{ matrix.harness }}" \
-            -f "$tmpfile" base/
-          rm -f "$tmpfile"
+        run: scripts/ci-setup.sh "${{ matrix.harness }}"
       - name: Verify
         run: podman images "localhost/agent-sandbox:base-tools-${{ matrix.harness }}"
 
-  # Parallel: test each top-level stack with claude harness
+  # Smart matrix: all top-level stacks × [claude, opencode]
   test-stack:
-    name: Stack — ${{ matrix.stack }}
+    name: Stack — ${{ matrix.stack }} / ${{ matrix.harness }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         stack: [python, node, rust, elixir, lua-nvim, clojure]
+        harness: [claude, opencode]
     steps:
       - uses: actions/checkout@v6
       - name: Install podman
         run: sudo apt-get update && sudo apt-get install -y podman
-      - name: Build base-tools + claude
+      - name: Build base + harness
+        run: scripts/ci-setup.sh "${{ matrix.harness }}"
+      - name: Build ${{ matrix.stack }}-${{ matrix.harness }}
         run: |
           podman build --build-arg UID=1000 --build-arg GID=1000 \
-            -t localhost/agent-sandbox:base-tools base/
-          tmpfile=$(mktemp)
-          {
-            echo "FROM localhost/agent-sandbox:base-tools"
-            echo "USER root"
-            cat base/harness/claude.sh
-            echo "RUN chown -R agent:agent /home/agent"
-            echo "USER agent"
-          } > "$tmpfile"
-          podman build --build-arg UID=1000 --build-arg GID=1000 \
-            -t localhost/agent-sandbox:base-tools-claude \
-            -f "$tmpfile" base/
-          rm -f "$tmpfile"
-      - name: Build ${{ matrix.stack }}-claude
-        run: |
-          podman build --build-arg UID=1000 --build-arg GID=1000 \
-            --build-arg BASE_IMAGE=localhost/agent-sandbox:base-tools-claude \
-            -t "localhost/agent-sandbox:${{ matrix.stack }}-claude" \
+            --build-arg BASE_IMAGE="localhost/agent-sandbox:base-tools-${{ matrix.harness }}" \
+            -t "localhost/agent-sandbox:${{ matrix.stack }}-${{ matrix.harness }}" \
             "stacks/${{ matrix.stack }}/"
       - name: Verify
-        run: podman images "localhost/agent-sandbox:${{ matrix.stack }}-claude"
+        run: podman images "localhost/agent-sandbox:${{ matrix.stack }}-${{ matrix.harness }}"
 
   # Manual mode: stack builds directly on base-tools (no harness layer)
   test-manual:
-    name: Manual mode
+    name: Manual — ${{ matrix.stack }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        stack: [python, node]
     steps:
       - uses: actions/checkout@v6
       - name: Install podman
         run: sudo apt-get update && sudo apt-get install -y podman
       - name: Build base-tools
-        run: |
-          podman build --build-arg UID=1000 --build-arg GID=1000 \
-            -t localhost/agent-sandbox:base-tools base/
-      - name: Build python-manual
+        run: scripts/ci-setup.sh
+      - name: Build ${{ matrix.stack }}-manual
         run: |
           podman build --build-arg UID=1000 --build-arg GID=1000 \
             --build-arg BASE_IMAGE=localhost/agent-sandbox:base-tools \
-            -t localhost/agent-sandbox:python-manual stacks/python/
+            -t "localhost/agent-sandbox:${{ matrix.stack }}-manual" \
+            "stacks/${{ matrix.stack }}/"
       - name: Verify
-        run: podman images localhost/agent-sandbox:python-manual
+        run: podman images "localhost/agent-sandbox:${{ matrix.stack }}-manual"
 
-  # Chain: web-cljs → clojure → base-tools-claude
+  # Smart matrix: chains × [claude, opencode]
   test-chain-web:
-    name: Chain — web-cljs
+    name: Chain web-cljs — ${{ matrix.harness }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        harness: [claude, opencode]
     steps:
       - uses: actions/checkout@v6
       - name: Install podman
         run: sudo apt-get update && sudo apt-get install -y podman
       - name: Build chain
         run: |
+          scripts/ci-setup.sh "${{ matrix.harness }}"
           podman build --build-arg UID=1000 --build-arg GID=1000 \
-            -t localhost/agent-sandbox:base-tools base/
-          tmpfile=$(mktemp)
-          {
-            echo "FROM localhost/agent-sandbox:base-tools"
-            echo "USER root"
-            cat base/harness/claude.sh
-            echo "RUN chown -R agent:agent /home/agent"
-            echo "USER agent"
-          } > "$tmpfile"
+            --build-arg BASE_IMAGE="localhost/agent-sandbox:base-tools-${{ matrix.harness }}" \
+            -t "localhost/agent-sandbox:clojure-${{ matrix.harness }}" stacks/clojure/
           podman build --build-arg UID=1000 --build-arg GID=1000 \
-            -t localhost/agent-sandbox:base-tools-claude \
-            -f "$tmpfile" base/
-          rm -f "$tmpfile"
-          podman build --build-arg UID=1000 --build-arg GID=1000 \
-            --build-arg BASE_IMAGE=localhost/agent-sandbox:base-tools-claude \
-            -t localhost/agent-sandbox:clojure-claude stacks/clojure/
-          podman build --build-arg UID=1000 --build-arg GID=1000 \
-            --build-arg BASE_IMAGE=localhost/agent-sandbox:clojure-claude \
-            -t localhost/agent-sandbox:web-cljs-claude stacks/web-cljs/
+            --build-arg BASE_IMAGE="localhost/agent-sandbox:clojure-${{ matrix.harness }}" \
+            -t "localhost/agent-sandbox:web-cljs-${{ matrix.harness }}" stacks/web-cljs/
       - name: Verify
-        run: |
-          podman images localhost/agent-sandbox:clojure-claude
-          podman images localhost/agent-sandbox:web-cljs-claude
+        run: podman images "localhost/agent-sandbox:web-cljs-${{ matrix.harness }}"
 
-  # Chain: react-native-cljs → web-cljs → clojure → base-tools-claude
   test-chain-rn:
-    name: Chain — react-native-cljs
+    name: Chain react-native — ${{ matrix.harness }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        harness: [claude, opencode]
     steps:
       - uses: actions/checkout@v6
       - name: Install podman
         run: sudo apt-get update && sudo apt-get install -y podman
       - name: Build chain
         run: |
+          scripts/ci-setup.sh "${{ matrix.harness }}"
           podman build --build-arg UID=1000 --build-arg GID=1000 \
-            -t localhost/agent-sandbox:base-tools base/
-          tmpfile=$(mktemp)
-          {
-            echo "FROM localhost/agent-sandbox:base-tools"
-            echo "USER root"
-            cat base/harness/claude.sh
-            echo "RUN chown -R agent:agent /home/agent"
-            echo "USER agent"
-          } > "$tmpfile"
+            --build-arg BASE_IMAGE="localhost/agent-sandbox:base-tools-${{ matrix.harness }}" \
+            -t "localhost/agent-sandbox:clojure-${{ matrix.harness }}" stacks/clojure/
           podman build --build-arg UID=1000 --build-arg GID=1000 \
-            -t localhost/agent-sandbox:base-tools-claude \
-            -f "$tmpfile" base/
-          rm -f "$tmpfile"
+            --build-arg BASE_IMAGE="localhost/agent-sandbox:clojure-${{ matrix.harness }}" \
+            -t "localhost/agent-sandbox:web-cljs-${{ matrix.harness }}" stacks/web-cljs/
           podman build --build-arg UID=1000 --build-arg GID=1000 \
-            --build-arg BASE_IMAGE=localhost/agent-sandbox:base-tools-claude \
-            -t localhost/agent-sandbox:clojure-claude stacks/clojure/
-          podman build --build-arg UID=1000 --build-arg GID=1000 \
-            --build-arg BASE_IMAGE=localhost/agent-sandbox:clojure-claude \
-            -t localhost/agent-sandbox:web-cljs-claude stacks/web-cljs/
-          podman build --build-arg UID=1000 --build-arg GID=1000 \
-            --build-arg BASE_IMAGE=localhost/agent-sandbox:web-cljs-claude \
-            -t localhost/agent-sandbox:react-native-cljs-claude stacks/react-native-cljs/
+            --build-arg BASE_IMAGE="localhost/agent-sandbox:web-cljs-${{ matrix.harness }}" \
+            -t "localhost/agent-sandbox:react-native-cljs-${{ matrix.harness }}" stacks/react-native-cljs/
       - name: Verify
-        run: podman images localhost/agent-sandbox:react-native-cljs-claude
+        run: podman images "localhost/agent-sandbox:react-native-cljs-${{ matrix.harness }}"
