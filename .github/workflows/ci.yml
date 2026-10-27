@@ -34,6 +34,12 @@ jobs:
           bash -n run.sh
           bash -n test.sh
 
+      - name: Validate mise.toml
+        run: |
+          curl -fsSL https://mise.run | sh
+          export PATH="$HOME/.local/bin:$PATH"
+          mise tasks
+
   # Smoke test: build base-tools image
   build-base:
     name: Build base-tools (smoke)

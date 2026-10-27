@@ -119,13 +119,22 @@ First run prompts `[K]eep/[R]eset/[D]iscard`; set `HARNESS_STATE_ACTION` to skip
 
 ## Development
 
+Uses [mise](https://mise.jdx.dev) as task runner. `./install.sh` bootstraps mise automatically.
+
 ```bash
-./test.sh                          # run CI checks locally (lint + build)
-./test.sh --skip-build             # lint only
-./test.sh --skip-lint              # build only
-./run.sh                           # run from source
-REBUILD=1 ./run.sh                 # rebuild + test
-podman rmi -f $(podman images -q localhost/agent-sandbox)   # cleanup
+mise tasks                  # list all tasks
+mise run install            # install (stow + config + checks)
+mise run test               # run CI checks locally (lint + build)
+mise run test -- --skip-build   # lint only
+mise run run                # run agent-sandbox from source
+mise run lint               # shellcheck + bash syntax
+mise run build              # build base-tools image
+mise run clean              # remove all agent-sandbox images
+
+# Without mise (bootstrap installs it):
+./install.sh                # installs mise, then runs mise run install
+./test.sh                   # CI checks (works without mise)
+./run.sh                    # run from source (works without mise)
 ```
 
 See [AGENTS.md](AGENTS.md) for contributor guidelines.

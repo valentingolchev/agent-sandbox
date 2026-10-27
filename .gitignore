@@ -15,4 +15,7 @@
 *.tar
 *.tar.gz
 
+# mise local overrides
+.mise.local.toml
+
 

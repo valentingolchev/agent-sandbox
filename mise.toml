@@ -1,0 +1,26 @@
+# mise tasks for agent-sandbox
+# Run: mise run <task>   |   List: mise tasks
+
+[tasks.install]
+description = "Install agent-sandbox (stow + config + checks)"
+run = "./lib/host/install_impl.sh"
+
+[tasks.test]
+description = "Run CI checks locally (lint + build). Args: --skip-build, --skip-lint"
+run = "./test.sh"
+
+[tasks.run]
+description = "Run agent-sandbox from source (no install needed)"
+run = "./run.sh"
+
+[tasks.lint]
+description = "Shellcheck + bash syntax check"
+run = "./test.sh --skip-build"
+
+[tasks.build]
+description = "Build base-tools image"
+run = "podman build --build-arg UID=$(id -u) --build-arg GID=$(id -g) -t localhost/agent-sandbox:base-tools base/"
+
+[tasks.clean]
+description = "Remove all agent-sandbox images"
+run = "podman rmi -f $(podman images -q localhost/agent-sandbox) 2>/dev/null || true"

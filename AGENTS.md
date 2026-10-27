@@ -15,8 +15,8 @@ Guidelines for AI agents (claude, opencode, pi, vibe) working on this repo.
 
 **Push:** Only when explicitly asked. Use `--force-with-lease` for rewritten history.
 
-**🚨 CRITICAL: Before every commit, run `./test.sh` and assess if README.md needs updating.**
-- `./test.sh` runs lint + build checks locally (same as CI). Fix failures before committing.
+**🚨 CRITICAL: Before every commit, run `mise run test` (or `./test.sh`) and assess if README.md needs updating.**
+- `mise run test` runs lint + build checks locally (same as CI). Fix failures before committing.
 - If the commit changes user-facing behavior (env vars, config keys, stacks,
   harnesses, install steps, security model), update README.md in the same commit.
 - Don't commit code changes that make the README stale or fail CI.
@@ -30,6 +30,7 @@ Guidelines for AI agents (claude, opencode, pi, vibe) working on this repo.
 - **Isolated** — Prefer subprocess calls over sourcing
 - **No implicit ordering** — Scripts don't depend on call order
 - **Minimal output** — Bare essential messages
+- **mise tasks** — Task runner defined in `mise.toml`. Scripts are implementation; mise tasks are the entry point. `./install.sh` bootstraps mise, then delegates.
 
 ### Calling vs Sourcing
 
@@ -91,10 +92,14 @@ set -euo pipefail
 
 | Task | Command |
 |------|---------|
-| Run installer | `./install.sh` |
+| List all tasks | `mise tasks` |
+| Install | `mise run install` (or `./install.sh` to bootstrap mise) |
 | Run agent | `agent-sandbox` |
-| Run from source | `./run.sh` |
-| **Run CI checks locally** | **`./test.sh`** |
+| Run from source | `mise run run` (or `./run.sh`) |
+| **Run CI checks locally** | **`mise run test`** (or `./test.sh`) |
+| Lint | `mise run lint` |
+| Build base-tools | `mise run build` |
+| Clean images | `mise run clean` |
 | Force rebuild | `REBUILD=1 agent-sandbox` |
 | No network | `NO_NETWORK=1 agent-sandbox` |
 | Specific harness | `HARNESS=claude agent-sandbox` |
