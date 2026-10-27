@@ -143,7 +143,6 @@ See [PLAN.md](PLAN.md) for full details.
 
 | # | Feature | Priority |
 |---|---------|----------|
-| **0** | **Switch to AGPL-3.0 license** | **🔴 P0** |
 | 1 | Mise tasks for scripting | P1 |
 | 2 | Docker testing in CI | **P1** |
 | 3 | Chezmoi support (alternative to Stow) | P2 |
