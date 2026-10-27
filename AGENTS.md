@@ -15,10 +15,11 @@ Guidelines for AI agents (claude, opencode, pi, vibe) working on this repo.
 
 **Push:** Only when explicitly asked. Use `--force-with-lease` for rewritten history.
 
-**🚨 CRITICAL: Before every commit, assess if README.md needs updating.**
-If the commit changes user-facing behavior (env vars, config keys, stacks,
-harnesses, install steps, security model), update README.md in the same commit.
-Don't commit code changes that make the README stale.
+**🚨 CRITICAL: Before every commit, run `./test.sh` and assess if README.md needs updating.**
+- `./test.sh` runs lint + build checks locally (same as CI). Fix failures before committing.
+- If the commit changes user-facing behavior (env vars, config keys, stacks,
+  harnesses, install steps, security model), update README.md in the same commit.
+- Don't commit code changes that make the README stale or fail CI.
 
 ---
 
@@ -60,6 +61,8 @@ set -euo pipefail
 - **Package versions:** Pin all versions in Containerfiles
 - **Container:** Read-only root, drop all caps, no new privs, non-root user
 - **Workspace:** Mounted at `/workspace/<name>` — host path hidden from agent
+- **Image names:** Use `localhost/agent-sandbox:` prefix (podman short-name
+  resolution requires TTY in CI). `IMAGE_PREFIX` in `lib/stacks.sh`.
 
 ---
 
@@ -90,6 +93,8 @@ set -euo pipefail
 |------|---------|
 | Run installer | `./install.sh` |
 | Run agent | `agent-sandbox` |
+| Run from source | `./run.sh` |
+| **Run CI checks locally** | **`./test.sh`** |
 | Force rebuild | `REBUILD=1 agent-sandbox` |
 | No network | `NO_NETWORK=1 agent-sandbox` |
 | Specific harness | `HARNESS=claude agent-sandbox` |

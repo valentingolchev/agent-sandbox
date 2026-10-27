@@ -120,10 +120,12 @@ First run prompts `[K]eep/[R]eset/[D]iscard`; set `HARNESS_STATE_ACTION` to skip
 ## Development
 
 ```bash
-./run.sh                                      # run from source
-find . -name '*.sh' -not -path './.git/*' -print0 | xargs -0 bash -n {}   # syntax check
-REBUILD=1 ./run.sh                            # rebuild + test
-podman rmi -f $(podman images -q agent-sandbox)   # cleanup
+./test.sh                          # run CI checks locally (lint + build)
+./test.sh --skip-build             # lint only
+./test.sh --skip-lint              # build only
+./run.sh                           # run from source
+REBUILD=1 ./run.sh                 # rebuild + test
+podman rmi -f $(podman images -q localhost/agent-sandbox)   # cleanup
 ```
 
 See [AGENTS.md](AGENTS.md) for contributor guidelines.
