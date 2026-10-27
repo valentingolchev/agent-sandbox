@@ -162,6 +162,8 @@ See [PLAN.md](PLAN.md) for full details.
 | 5 | Windows host support (WSL2 / native) | P2 |
 | 6 | Other ideas (aider, macOS CI, completions, more) | P3 |
 
+Done: mise tasks, Docker CI matrix.
+
 ## License
 
 MIT — see [LICENSE](LICENSE)

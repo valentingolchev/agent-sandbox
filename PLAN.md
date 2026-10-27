@@ -2,6 +2,17 @@
 
 Future improvements, ordered by priority. Not scheduled — pick when relevant.
 
+## Done
+
+Completed features. Kept as titles for history — delete when no longer relevant.
+
+- ~~Mise tasks for scripting~~ — `mise.toml`, `setup.sh`, `scripts/`, composed tasks (`lint` + `test-build` → `test`)
+- ~~Docker testing in CI~~ — `[podman, docker]` matrix, composite actions, `CONTAINER_RUNTIME` support
+
+---
+
+## Upcoming
+
 | # | Feature | Priority | Section |
 |---|---------|----------|---------|
 | 1 | Chezmoi support | P2 | [#1](#1-chezmoi-support-p2) |
@@ -26,12 +37,12 @@ Future improvements, ordered by priority. Not scheduled — pick when relevant.
   - If chezmoi: use `chezmoi add` / `chezmoi apply` instead of `stow`
   - If stow: current behavior
   - If neither: error with install instructions for both
-- Add `chezmoi` to `check_tools.sh` as optional (not required)
+- Add `chezmoi` to system requirements (mise can't install it)
 - Chezmoi source dir convention: `~/.local/share/chezmoi` — document how to add agent-sandbox
 - Config creation (`create_config.sh`) stays the same (not symlinked)
 
 **Files:**
-- Modify: `lib/host/stow.sh` (rename to `link.sh`?), `lib/host/check_tools.sh`, `install.sh`
+- Modify: `lib/host/stow.sh` (rename to `link.sh`?), `mise.toml` (system reqs comment), `setup.sh`
 - Modify: `README.md` (Chezmoi install option)
 - Modify: `.config/agent-sandbox/config.template` (comment about chezmoi)
 
@@ -57,12 +68,12 @@ Future improvements, ordered by priority. Not scheduled — pick when relevant.
   - `[path]` sections have valid paths (expand `~`, check existence)
   - `harness_state_action` is one of `keep|reset|discard|prompt`
 - Exit 0 if valid, exit 1 with error messages if not
-- Integrate into `install.sh` as a final step (warn if config invalid)
+- Integrate into `lib/host/install.sh` as a final step (warn if config invalid)
 
 **Files:**
 - New: `lib/validate.sh` — config validation logic
 - Modify: `.local/bin/agent-sandbox` (add `--check` flag)
-- Modify: `install.sh` (run validation after config creation)
+- Modify: `lib/host/install.sh` (run validation after config creation)
 - Modify: `README.md`, `AGENTS.md`
 
 ---
@@ -113,7 +124,7 @@ USER agent
 **Files:**
 - New: `stacks/go/Containerfile`, `stacks/zig/Containerfile`
 - Modify: `README.md` (add to stacks table)
-- Modify: `test.sh` (add go/zig to build tests, or separate optional test)
+- Modify: `scripts/test-build.sh` (add go/zig to build tests, or separate optional test)
 
 ---
 
@@ -178,7 +189,7 @@ USER agent
 - User installs WSL2 + podman inside WSL2
 - `agent-sandbox` runs inside WSL2 (bash works natively)
 - Workspace: access Windows files via `/mnt/c/...` or keep projects in WSL2
-- `install.sh` detects WSL2 (`/proc/version` contains `microsoft`)
+- `setup.sh` detects WSL2 (`/proc/version` contains `microsoft`)
 
 **Native Windows approach (harder):**
 - Git Bash or MSYS2 for shell
@@ -189,9 +200,9 @@ USER agent
 
 **Files:**
 - Modify: `lib/runtime.sh` (detect WSL2, Docker Desktop)
-- Modify: `lib/host/check_tools.sh` (Windows tool checks)
+- Modify: `lib/host/install.sh` (Windows tool checks)
 - Modify: `lib/host/stow.sh` → `link.sh` (Chezmoi on Windows)
-- Modify: `install.sh` (WSL2 vs native detection)
+- Modify: `setup.sh` (WSL2 vs native detection)
 - Modify: `.local/bin/agent-sandbox` (path translation)
 - New: `lib/host/wsl.sh` (WSL2 helpers: `wslpath`, drive detection)
 - Modify: `README.md` (Windows install instructions)
@@ -235,7 +246,7 @@ USER agent
 **Files:**
 - New: `base/harness/aider.sh`
 - Modify: `lib/prompts.sh`, `lib/credentials.sh`, `lib/state.sh`
-- Modify: `README.md` (harness table), `test.sh` (optional aider build test)
+- Modify: `README.md` (harness table), `scripts/test-build.sh` (optional aider build test)
 
 ### Other ideas
 
