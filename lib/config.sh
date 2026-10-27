@@ -29,7 +29,7 @@ load_config() {
         key="$(trim "${line%%=*}")"
         value="$(trim "${line#*=}")"
         case "$key" in
-            stack|harness|memory|cpus|no_network|persist_caches|env_keys|harness_state|runtime) ;;
+            stack|harness|memory|cpus|no_network|persist_caches|env_keys|harness_state|runtime|init_script) ;;
             *) continue ;;
         esac
         if [[ -z "$current" ]]; then

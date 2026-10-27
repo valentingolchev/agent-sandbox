@@ -44,10 +44,12 @@ cpus = 4
 persist_caches = false
 harness_state = false
 harness_state_action = prompt
+# init_script = ~/path/to/init.sh   # runs inside container before harness
 
 [/path/to/agent-sandbox]
 stack = base
 harness = opencode
+init_script = /path/to/agent-sandbox/init.sh   # mise install on container start
 ```
 
 ## Environment variables

@@ -97,6 +97,19 @@ echo "Image: $IMAGE   Workspace: $WORKSPACE_DIR" >&2
 
 ensure_image "$stack_name" "$HARNESS_NAME"
 
+# ---- init script (runs inside container before harness) ----
+INIT_ARGS=()
+HARNESS_ARGS=("$HARNESS_CMD")
+if [ -n "${CONFIG[init_script]:-}" ]; then
+    INIT_SCRIPT="${CONFIG[init_script]}"
+    INIT_SCRIPT="${INIT_SCRIPT/#\~/$HOME}"
+    if [ ! -f "$INIT_SCRIPT" ]; then
+        die "init_script not found: $INIT_SCRIPT"
+    fi
+    INIT_ARGS=(-v "$INIT_SCRIPT:/init.sh:ro")
+    HARNESS_ARGS=(/bin/bash -c "/init.sh && exec $HARNESS_CMD")
+fi
+
 # ---- container args ----
 
 # Runtime-specific user mapping (userns=keep-id for podman, --user for docker).
@@ -207,7 +220,8 @@ trap '[ -z "$KEYRING_ENV_FILE" ] || rm -f "$KEYRING_ENV_FILE"' EXIT
     "${CACHE_ARGS[@]}" \
     "${STATE_ARGS[@]}" \
     "${ENV_FILE_ARGS[@]}" \
+    "${INIT_ARGS[@]}" \
     -v "$WORKSPACE_DIR:/workspace/$WORKSPACE_NAME:rw" \
     -w "/workspace/$WORKSPACE_NAME" \
     "$IMAGE" \
-    "$HARNESS_CMD"
+    "${HARNESS_ARGS[@]}"
