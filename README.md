@@ -127,7 +127,7 @@ mise run install            # install (stow + config + checks)
 mise run test               # run all checks (lint + build tests)
 mise run lint               # shellcheck + bash syntax only
 mise run test-build         # build tests only
-mise run run                # run agent-sandbox from source
+mise run start              # run agent-sandbox from source
 mise run build              # build base-tools image
 mise run clean              # remove all agent-sandbox images
 

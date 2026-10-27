@@ -95,7 +95,7 @@ set -euo pipefail
 | List all tasks | `mise tasks` |
 | Install | `mise run install` (or `./install.sh` to bootstrap mise) |
 | Run agent | `agent-sandbox` |
-| Run from source | `mise run run` (or `./run.sh`) |
+| Run from source | `mise run start` (or `./run.sh`) |
 | **Run all checks** | **`mise run test`** (lint + build, or `./test.sh`) |
 | Lint only | `mise run lint` (or `./lint.sh`) |
 | Build tests only | `mise run test-build` (or `./test-build.sh`) |

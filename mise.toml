@@ -17,7 +17,7 @@ run = "./test-build.sh"
 description = "Run all checks (lint + build tests)"
 depends = ["lint", "test-build"]
 
-[tasks.run]
+[tasks.start]
 description = "Run agent-sandbox from source (no install needed)"
 run = "./run.sh"
 
