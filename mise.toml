@@ -2,10 +2,11 @@
 # Tools: mise install   |   Tasks: mise tasks   |   Run: mise run <task>
 
 [tools]
-# Cross-platform tools (installed by mise)
+# Dev tools (installed by mise, managed automatically)
+shellcheck = "latest"
 fzf = "latest"
 
-# System requirements (install via package manager, mise can't handle these):
+# System requirements (NOT installed by mise — use package manager):
 #   stow:    sudo dnf install stow   (Fedora/RHEL)
 #            sudo apt install stow   (Debian/Ubuntu)
 #            brew install stow       (macOS)
@@ -20,8 +21,8 @@ description = "Set up agent-sandbox (stow + config + checks)"
 run = "./lib/host/install.sh"
 
 [tasks.lint]
-description = "Shellcheck + bash syntax check"
-run = "./scripts/lint.sh"
+description = "Shellcheck + bash syntax check (auto-installs shellcheck)"
+run = "mise install && ./scripts/lint.sh"
 
 [tasks."test-build"]
 description = "Build and test image composition"

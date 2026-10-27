@@ -11,4 +11,5 @@ if ! command -v mise >/dev/null 2>&1; then
     export PATH="$HOME/.local/bin:$PATH"
 fi
 
+mise install
 exec mise run setup "$@"

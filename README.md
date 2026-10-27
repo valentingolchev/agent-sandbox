@@ -15,7 +15,8 @@ Run LLM coding agents (claude, opencode, pi, vibe) in hardened containers.
 ./run.sh              # or run from source, no install
 ```
 
-Tools: `stow` + `podman`/`docker` (system package manager). `fzf` is optional (auto-installed by mise). See `mise.toml` for details.
+System tools: `stow` + `podman`/`docker` (package manager — see `mise.toml` comments).
+Dev tools: `shellcheck`, `fzf` — auto-installed by `mise install` (run once after clone, or `./setup.sh` does it).
 
 Config: `~/.config/agent-sandbox/config` (regular file, created from
 `.config/agent-sandbox/config.template` — never overwritten on reinstall).
