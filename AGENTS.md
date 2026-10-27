@@ -100,3 +100,5 @@ set -euo pipefail
 | Specific harness | `HARNESS=claude agent-sandbox` |
 | Enable state | `HARNESS_STATE=1 agent-sandbox` |
 | Audit log | `SESSION_LOG=~/audit.log agent-sandbox` |
+
+See [PLAN.md](PLAN.md) for the feature roadmap.

@@ -137,6 +137,10 @@ creates files in `$HOME`.
 **Add a harness**: create `base/harness/<name>.sh` (pinned versions). Register in
 `lib/prompts.sh` (`HARNESSES`), `lib/credentials.sh` (API keys), `lib/state.sh` (state mapping).
 
+## Roadmap
+
+See [PLAN.md](PLAN.md) for planned features (mise tasks, Chezmoi support, TUI improvements).
+
 ## License
 
 MIT — see [LICENSE](LICENSE)
