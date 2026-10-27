@@ -132,4 +132,5 @@ jobs:
             -t localhost/agent-sandbox:web-cljs-claude \
             stacks/web-cljs/
 
-          podman images localhost/agent-sandbox:clojure-claude localhost/agent-sandbox:web-cljs-claude
+          podman images localhost/agent-sandbox:clojure-claude
+          podman images localhost/agent-sandbox:web-cljs-claude
