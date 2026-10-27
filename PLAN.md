@@ -8,7 +8,7 @@ Done items stay in the list with ~~strikethrough~~ — numbers never change.
 | 1 | ~~Mise tasks for scripting~~ | P1 | ✅ done |
 | 2 | ~~Docker testing in CI~~ | P1 | ✅ done |
 | 3 | Chezmoi support | P2 | |
-| 4 | Config validation | P2 | |
+| 4 | ~~Config validation~~ | P2 | ✅ done |
 | 5 | New stacks: Go, Zig | P2 | |
 | 6 | TUI UX improvements | P2 | |
 | 7 | Windows host support | P2 | |
@@ -37,36 +37,6 @@ Done items stay in the list with ~~strikethrough~~ — numbers never change.
 - Modify: `lib/host/stow.sh` (rename to `link.sh`?), `mise.toml` (system reqs comment), `setup.sh`
 - Modify: `README.md` (Chezmoi install option)
 - Modify: `.config/agent-sandbox/config.template` (comment about chezmoi)
-
----
-
-## 4. Config validation (P2)
-
-**Goal:** Add `agent-sandbox --check` to validate the config file before running.
-
-**Why:**
-- Config errors (typos in keys, invalid values, bad paths) only surface at runtime
-- Catching them early saves debugging time
-- Useful in CI or pre-commit hooks
-
-**Changes:**
-- New flag: `agent-sandbox --check` (or `--validate`)
-- Validates:
-  - Config file syntax (INI parse errors)
-  - Known keys only (`stack`, `harness`, `memory`, `cpus`, etc.)
-  - Stack names exist in `STACKS`
-  - Harness names are valid
-  - Memory/CPU values are parseable
-  - `[path]` sections have valid paths (expand `~`, check existence)
-  - `harness_state_action` is one of `keep|reset|discard|prompt`
-- Exit 0 if valid, exit 1 with error messages if not
-- Integrate into `lib/host/install.sh` as a final step (warn if config invalid)
-
-**Files:**
-- New: `lib/validate.sh` — config validation logic
-- Modify: `.local/bin/agent-sandbox` (add `--check` flag)
-- Modify: `lib/host/install.sh` (run validation after config creation)
-- Modify: `README.md`, `AGENTS.md`
 
 ---
 

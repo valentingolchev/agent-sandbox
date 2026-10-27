@@ -7,7 +7,8 @@
 #   2. Create default config from template
 #   3. Verify ~/.local/bin is in PATH
 #   4. Check container runtime is working
-#   5. Validate repository structure
+#   5. Validate config
+#   6. Validate repository structure
 #
 # Safe to run multiple times.
 
@@ -58,8 +59,16 @@ else
     warn "Runtime needs attention — follow the instructions above"
 fi
 
-# ── Step 5: Validate repo ───────────────────────────────────────
-step "Step 5/5: Validating repository"
+# ── Step 5: Validate config ─────────────────────────────────────
+step "Step 5/6: Validating config"
+if "$ROOT/.local/bin/agent-sandbox" --check 2>&1; then
+    ok "Config valid"
+else
+    warn "Config has issues — see above"
+fi
+
+# ── Step 6: Validate repo ───────────────────────────────────────
+step "Step 6/6: Validating repository"
 if "$HOST/check_repo.sh" "$ROOT" 2>&1; then
     ok "Repository structure valid"
 else

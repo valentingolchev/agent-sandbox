@@ -20,6 +20,10 @@ fzf = "latest"
 description = "Set up agent-sandbox (stow + config + checks)"
 run = "./lib/host/install.sh"
 
+[tasks.check]
+description = "Validate agent-sandbox config (agent-sandbox --check)"
+run = "./.local/bin/agent-sandbox --check"
+
 [tasks.lint]
 description = "Shellcheck + bash syntax check (auto-installs shellcheck)"
 run = "mise install && ./scripts/lint.sh"
@@ -29,8 +33,8 @@ description = "Build and test image composition"
 run = "./scripts/test-build.sh"
 
 [tasks.test]
-description = "Run all checks (lint + build tests)"
-depends = ["lint", "test-build"]
+description = "Run all checks (config + lint + build tests)"
+depends = ["check", "lint", "test-build"]
 
 [tasks.start]
 description = "Run agent-sandbox from source (no install needed)"

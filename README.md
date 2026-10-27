@@ -129,7 +129,8 @@ Uses [mise](https://mise.jdx.dev) as task runner. `./setup.sh` bootstraps mise a
 ```bash
 mise tasks                  # list all tasks
 mise run setup              # set up (stow + config + checks)
-mise run test               # run all checks (lint + build tests)
+mise run test               # run all checks (config + lint + build)
+mise run check              # validate config only (agent-sandbox --check)
 mise run lint               # shellcheck + bash syntax only
 mise run test-build         # build tests only
 mise run start              # run agent-sandbox from source
