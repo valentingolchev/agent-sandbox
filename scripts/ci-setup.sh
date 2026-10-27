@@ -21,8 +21,10 @@ if [ -n "$HARNESS" ]; then
     esac
 fi
 
+# -f Containerfile: Docker (BuildKit) doesn't auto-discover Containerfile, only Dockerfile
 "$RUNTIME" build --build-arg UID=1000 --build-arg GID=1000 \
-    -t "$IMG:base-tools" "$ROOT/base"
+    -t "$IMG:base-tools" \
+    -f "$ROOT/base/Containerfile" "$ROOT/base"
 
 if [ -n "$HARNESS" ]; then
     tmpfile=$(mktemp)

@@ -92,6 +92,7 @@ jobs:
           $CONTAINER_RUNTIME build --build-arg UID=1000 --build-arg GID=1000 \
             --build-arg BASE_IMAGE="$IMG:base-tools-${{ matrix.harness }}" \
             -t "$IMG:${{ matrix.stack }}-${{ matrix.harness }}" \
+            -f "stacks/${{ matrix.stack }}/Containerfile" \
             "stacks/${{ matrix.stack }}/"
         env:
           CONTAINER_RUNTIME: ${{ matrix.runtime }}
@@ -120,6 +121,7 @@ jobs:
           $CONTAINER_RUNTIME build --build-arg UID=1000 --build-arg GID=1000 \
             --build-arg BASE_IMAGE="$IMG:base-tools" \
             -t "$IMG:${{ matrix.stack }}-manual" \
+            -f "stacks/${{ matrix.stack }}/Containerfile" \
             "stacks/${{ matrix.stack }}/"
         env:
           CONTAINER_RUNTIME: ${{ matrix.runtime }}
@@ -148,10 +150,12 @@ jobs:
         run: |
           $CONTAINER_RUNTIME build --build-arg UID=1000 --build-arg GID=1000 \
             --build-arg BASE_IMAGE="$IMG:base-tools-${{ matrix.harness }}" \
-            -t "$IMG:clojure-${{ matrix.harness }}" stacks/clojure/
+            -t "$IMG:clojure-${{ matrix.harness }}" \
+            -f stacks/clojure/Containerfile stacks/clojure/
           $CONTAINER_RUNTIME build --build-arg UID=1000 --build-arg GID=1000 \
             --build-arg BASE_IMAGE="$IMG:clojure-${{ matrix.harness }}" \
-            -t "$IMG:web-cljs-${{ matrix.harness }}" stacks/web-cljs/
+            -t "$IMG:web-cljs-${{ matrix.harness }}" \
+            -f stacks/web-cljs/Containerfile stacks/web-cljs/
         env:
           CONTAINER_RUNTIME: ${{ matrix.runtime }}
       - run: $CONTAINER_RUNTIME images $IMG:web-cljs-${{ matrix.harness }}
@@ -179,13 +183,16 @@ jobs:
         run: |
           $CONTAINER_RUNTIME build --build-arg UID=1000 --build-arg GID=1000 \
             --build-arg BASE_IMAGE="$IMG:base-tools-${{ matrix.harness }}" \
-            -t "$IMG:clojure-${{ matrix.harness }}" stacks/clojure/
+            -t "$IMG:clojure-${{ matrix.harness }}" \
+            -f stacks/clojure/Containerfile stacks/clojure/
           $CONTAINER_RUNTIME build --build-arg UID=1000 --build-arg GID=1000 \
             --build-arg BASE_IMAGE="$IMG:clojure-${{ matrix.harness }}" \
-            -t "$IMG:web-cljs-${{ matrix.harness }}" stacks/web-cljs/
+            -t "$IMG:web-cljs-${{ matrix.harness }}" \
+            -f stacks/web-cljs/Containerfile stacks/web-cljs/
           $CONTAINER_RUNTIME build --build-arg UID=1000 --build-arg GID=1000 \
             --build-arg BASE_IMAGE="$IMG:web-cljs-${{ matrix.harness }}" \
-            -t "$IMG:react-native-cljs-${{ matrix.harness }}" stacks/react-native-cljs/
+            -t "$IMG:react-native-cljs-${{ matrix.harness }}" \
+            -f stacks/react-native-cljs/Containerfile stacks/react-native-cljs/
         env:
           CONTAINER_RUNTIME: ${{ matrix.runtime }}
       - run: $CONTAINER_RUNTIME images $IMG:react-native-cljs-${{ matrix.harness }}

@@ -90,6 +90,7 @@ ensure_base_tools() {
             --build-arg UID="$(id -u)" \
             --build-arg GID="$(id -g)" \
             -t "$IMAGE_PREFIX:base-tools" \
+            -f "$SANDBOX_ROOT/base/Containerfile" \
             "$SANDBOX_ROOT/base"
     fi
 }
@@ -159,6 +160,7 @@ build_stack_with_harness() {
         --build-arg GID="$(id -g)" \
         --build-arg BASE_IMAGE="$parent_image" \
         -t "$image" \
+        -f "$context/Containerfile" \
         "$context"
 }
 

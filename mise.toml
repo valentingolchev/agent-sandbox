@@ -43,7 +43,7 @@ run = "./scripts/run.sh"
 
 [tasks.build]
 description = "Build base-tools image (uses $CONTAINER_RUNTIME, default: podman)"
-run = "${CONTAINER_RUNTIME:-podman} build --build-arg UID=$(id -u) --build-arg GID=$(id -g) -t localhost/agent-sandbox:base-tools base/"
+run = "${CONTAINER_RUNTIME:-podman} build --build-arg UID=$(id -u) --build-arg GID=$(id -g) -t localhost/agent-sandbox:base-tools -f base/Containerfile base/"
 
 [tasks.clean]
 description = "Remove all agent-sandbox images"

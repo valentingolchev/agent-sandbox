@@ -130,6 +130,12 @@ set -euo pipefail
 - **Use `localhost/agent-sandbox:` prefix** — podman short-name resolution
   requires TTY in CI. `IMAGE_PREFIX` in `lib/stacks.sh`.
 
+### Containerfile Naming
+
+- **Always use `-f <path>/Containerfile`** in build commands — Docker (BuildKit)
+  only auto-discovers `Dockerfile`, not `Containerfile`. Podman supports both,
+  but explicit `-f` works for both runtimes.
+
 ### Before Committing (Security Checklist)
 
 Ask yourself:
