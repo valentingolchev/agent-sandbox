@@ -155,14 +155,14 @@ See [PLAN.md](PLAN.md) for full details.
 
 | # | Feature | Priority |
 |---|---------|----------|
-| 1 | Chezmoi support (alternative to Stow) | P2 |
-| 2 | Config validation (`--check`) | P2 |
-| 3 | New stacks: Go, Zig | P2 |
-| 4 | TUI UX improvements | P2 |
-| 5 | Windows host support (WSL2 / native) | P2 |
-| 6 | Other ideas (aider, macOS CI, completions, more) | P3 |
-
-Done: mise tasks, Docker CI matrix.
+| 1 | ~~Mise tasks~~ | ✅ |
+| 2 | ~~Docker CI matrix~~ | ✅ |
+| 3 | Chezmoi support (alternative to Stow) | P2 |
+| 4 | Config validation (`--check`) | P2 |
+| 5 | New stacks: Go, Zig | P2 |
+| 6 | TUI UX improvements | P2 |
+| 7 | Windows host support (WSL2 / native) | P2 |
+| 8 | Other ideas (aider, macOS CI, completions, more) | P3 |
 
 ## License
 

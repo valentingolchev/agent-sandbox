@@ -1,30 +1,22 @@
 # PLAN — Feature roadmap
 
-Future improvements, ordered by priority. Not scheduled — pick when relevant.
+Ordered by priority. Not scheduled — pick when relevant.
+Done items stay in the list with ~~strikethrough~~ — numbers never change.
 
-## Done
-
-Completed features. Kept as titles for history — delete when no longer relevant.
-
-- ~~Mise tasks for scripting~~ — `mise.toml`, `setup.sh`, `scripts/`, composed tasks (`lint` + `test-build` → `test`)
-- ~~Docker testing in CI~~ — `[podman, docker]` matrix, composite actions, `CONTAINER_RUNTIME` support
-
----
-
-## Upcoming
-
-| # | Feature | Priority | Section |
-|---|---------|----------|---------|
-| 1 | Chezmoi support | P2 | [#1](#1-chezmoi-support-p2) |
-| 2 | Config validation | P2 | [#2](#2-config-validation-p2) |
-| 3 | New stacks: Go, Zig | P2 | [#3](#3-new-stacks-go-zig-p2) |
-| 4 | TUI UX improvements | P2 | [#4](#4-tui-ux-improvements-p2) |
-| 5 | Windows host support | P2 | [#5](#5-windows-host-support-p2) |
-| 6 | Other ideas | P3 | [#6](#6-other-ideas-p3-unscheduled) |
+| # | Feature | Priority | Status |
+|---|---------|----------|--------|
+| 1 | ~~Mise tasks for scripting~~ | P1 | ✅ done |
+| 2 | ~~Docker testing in CI~~ | P1 | ✅ done |
+| 3 | Chezmoi support | P2 | |
+| 4 | Config validation | P2 | |
+| 5 | New stacks: Go, Zig | P2 | |
+| 6 | TUI UX improvements | P2 | |
+| 7 | Windows host support | P2 | |
+| 8 | Other ideas | P3 | |
 
 ---
 
-## 1. Chezmoi support (P2)
+## 3. Chezmoi support (P2)
 
 **Goal:** Allow Chezmoi as an alternative to Stow for symlinking the runner into `~/.local/bin`.
 
@@ -48,7 +40,7 @@ Completed features. Kept as titles for history — delete when no longer relevan
 
 ---
 
-## 2. Config validation (P2)
+## 4. Config validation (P2)
 
 **Goal:** Add `agent-sandbox --check` to validate the config file before running.
 
@@ -78,7 +70,7 @@ Completed features. Kept as titles for history — delete when no longer relevan
 
 ---
 
-## 3. New stacks: Go, Zig (P2)
+## 5. New stacks: Go, Zig (P2)
 
 **Goal:** Add Go and Zig development stacks.
 
@@ -128,7 +120,7 @@ USER agent
 
 ---
 
-## 4. TUI UX improvements (P2)
+## 6. TUI UX improvements (P2)
 
 **Goal:** Better interactive experience when picking stack/harness and managing state.
 
@@ -163,7 +155,7 @@ USER agent
 
 ---
 
-## 5. Windows host support (P2)
+## 7. Windows host support (P2)
 
 **Goal:** Run agent-sandbox on Windows hosts (WSL2 or native with Docker Desktop).
 
@@ -209,7 +201,7 @@ USER agent
 
 ---
 
-## 6. Other ideas (P3, unscheduled)
+## 8. Other ideas (P3, unscheduled)
 
 ### Harness: aider
 
