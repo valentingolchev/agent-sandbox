@@ -57,13 +57,91 @@ set -euo pipefail
 
 ## Security Conventions
 
-- **API keys:** Only forward for the active harness
-- **Harness state:** Use snapshot approach (`lib/state.sh`) — host state never modified
-- **Package versions:** Pin all versions in Containerfiles
-- **Container:** Read-only root, drop all caps, no new privs, non-root user
-- **Workspace:** Mounted at `/workspace/<name>` — host path hidden from agent
-- **Image names:** Use `localhost/agent-sandbox:` prefix (podman short-name
-  resolution requires TTY in CI). `IMAGE_PREFIX` in `lib/stacks.sh`.
+**🚨 CRITICAL: Security is not optional. Every change must be reviewed for security impact.**
+
+### Container Security (non-negotiable)
+
+- Read-only root filesystem (`--read-only`)
+- All capabilities dropped (`--cap-drop=ALL`)
+- `no-new-privileges` security option
+- Non-root user (`USER agent` in all Containerfiles)
+- PID limit (`--pids-limit 512`)
+- Memory/CPU limits (defaults 8g/4)
+- tmpfs for `/tmp` and `/home/agent` with size caps
+- `--no-hosts`, `--init`, `--rm`, `--pull=never`
+- **Never mount the Docker socket** — docker-cli is present but daemonless
+- **Never mount host `/`, `/etc`, `/var`** into the container
+
+### Secrets Handling
+
+- **API keys:** Only forward for the active harness (`lib/credentials.sh`)
+- **Never put secrets on the command line** — use `--env-file` or `-e KEY` (name only)
+- **Keyring temp files:** Set EXIT trap IMMEDIATELY after `mktemp` (before any
+  interactive prompts, scans, or operations that could abort the script)
+- **Reject multi-line secrets** — they can inject extra lines into `--env-file`
+- **Keyring secrets go to `/run/user/<uid>/`** (user-private, not `/tmp`)
+- **Session log:** Record metadata only — never env vars, never key values
+
+### Supply Chain
+
+- **Pin ALL versions** in Containerfiles (npm packages, curl downloads, etc.)
+- **Never use `latest` or `latest/download` URLs** — pin a release tag
+- **Never `curl | sh`** in Containerfiles — download to file first, then execute
+- **Base images:** Prefer digest-pinned (`@sha256:...`) over tag-pinned
+- **Harness scripts:** Version-pinned with comment to check security advisories
+- **mise tools:** Pin versions in `mise.toml` `[tools]`
+
+### Host State Protection
+
+- **Harness state:** Use snapshot approach (`lib/state.sh`) — host state NEVER modified
+- **Snapshot sync is one-way:** host → snapshot only, no sync-back
+- **Snapshot dir permissions:** `chmod 700` (may contain OAuth tokens)
+- **Config file permissions:** `chmod 600` (may contain env_keys, paths)
+- **`create_config.sh` never overwrites** existing user config
+
+### Script Security
+
+- **Quote all variables:** `"$var"` — unquoted expansion is a bug
+- **No `eval`** — ever
+- **Validate user input** against fixed lists (harness names, stack names, etc.)
+- **Reject path traversal** — validate paths don't contain `../`
+- **`mktemp` for all temp files** — never hardcode `/tmp/foo`
+- **Set EXIT trap for temp file cleanup** — immediately after creation
+- **`set -euo pipefail`** — always
+- **`|| true` on `find` in `$(...)`** — `set -e` kills script on unreadable dirs
+
+### Workspace & Mounts
+
+- **Workspace mounted at `/workspace/<name>`** — host path hidden from CWD
+- **Document that `/proc/self/mountinfo` reveals host paths** — path hiding is
+  cosmetic, not a security boundary. Don't claim otherwise.
+- **Validate workspace name** — no `:` (breaks `-v host:container:rw` parsing)
+- **init_script mounted `:ro`** — read-only, runs as agent user
+
+### CI/CD Security
+
+- **Quote all GHA inputs** in composite actions — unquoted `${{ inputs.x }}` is injection
+- **Validate inputs** against fixed lists in scripts (harness, stack, runtime)
+- **CI permissions:** `contents: read` only
+- **No secrets in CI logs** — never echo env vars, keys, or tokens
+
+### Image Names
+
+- **Use `localhost/agent-sandbox:` prefix** — podman short-name resolution
+  requires TTY in CI. `IMAGE_PREFIX` in `lib/stacks.sh`.
+
+### Before Committing (Security Checklist)
+
+Ask yourself:
+1. Does this change touch secrets, keys, or credentials? → Review carefully
+2. Does this change add a download? → Pin version + use HTTPS
+3. Does this change add a mount? → Is it necessary? Read-only if possible?
+4. Does this change run code inside the container? → Validate inputs first
+5. Does this change modify host state? → It should NEVER write to host
+6. Does this change add a new Containerfile layer? → `chown -R agent:agent /home/agent`
+   if the install creates files in `$HOME`
+7. Does this change add a config key? → Add to `lib/config.sh` whitelist AND
+   `lib/validate.sh` VALID_KEYS
 
 ---
 
