@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Bump or check pinned harness versions in base/harness/*.sh
-# Usage: ./scripts/bump-harness.sh [--check|<harness>|all [<version>]]
+# Entry point: mise task bump-harness; direct script path is implementation detail.
+# Usage: mise run bump-harness [-- [--check|--update|-u|<harness>|all [<version>]]]
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -48,9 +49,9 @@ bump_harness_file() {
   validate_version "$old"
   validate_version "$new"
 
-  # Escape only . and + for sed BRE
+  # Escape only . for sed BRE (+ is literal in BRE; \+ means one-or-more in GNU BRE)
   local old_esc
-  old_esc="$(printf '%s' "$old" | sed 's/[.+]/\\&/g')"
+  old_esc="$(printf '%s' "$old" | sed 's/[.]/\\&/g')"
 
   # Rewrite file with portable sed (GNU/BSD)
   sed -i \
@@ -67,19 +68,23 @@ bump_harness_file() {
 usage() {
   cat <<'EOF'
 Usage:
-  ./scripts/bump-harness.sh [--check|<harness>|all [<version>]]
+  mise run bump-harness [-- [--check|--update|-u|<harness>|all [<version>]]]
 
 Commands:
-  --check               Check all harnesses against latest upstream
+  --check               Check all harnesses against latest upstream (no changes)
+  --update, -u          Update all harnesses to latest upstream
+  --update <harness>    Update single harness to latest upstream
+  --update <harness> <version>
+                        Update single harness to explicit version
   <harness>             Bump single harness to latest
   all                   Bump all harnesses to latest
   <harness> <version>   Bump to explicit version (e.g., 9.9.9)
 
 Examples:
-  ./scripts/bump-harness.sh --check
-  ./scripts/bump-harness.sh claude
-  ./scripts/bump-harness.sh all
-  ./scripts/bump-harness.sh vibe 4.0.0
+  mise run bump-harness -- --check
+  mise run bump-harness -- --update
+  mise run bump-harness -- --update claude
+  mise run bump-harness -- --update vibe 4.0.0
 
 After a successful bump, rebuild with: REINSTALL_HARNESS=1 agent-sandbox
 EOF
@@ -98,6 +103,39 @@ fi
 if [[ "${1:-}" == "--check" ]]; then
   MODE="check"
   shift
+  if [[ "${1:-}" == "--update" || "${1:-}" == "-u" ]]; then
+    die "--update and --check are mutually exclusive"
+  fi
+elif [[ "${1:-}" == "--update" || "${1:-}" == "-u" ]]; then
+  shift
+  if [[ "${1:-}" == "--check" ]]; then
+    die "--update and --check are mutually exclusive"
+  fi
+  # Reject option-like args: harness names and versions cannot start with '-'
+  if [[ "${#}" -ge 1 && "${1:-}" == -* ]]; then
+    die "Invalid argument: $1 (harness names and versions cannot start with '-')"
+  fi
+  if [[ "${#}" -eq 0 ]]; then
+    MODE="all"
+  else
+    HARNESS_ARG="$1"
+    shift
+    if [[ "${#}" -ge 1 ]]; then
+      VERSION_ARG="$1"
+      if [[ "$VERSION_ARG" == -* ]]; then
+        die "Invalid version: $VERSION_ARG (versions cannot start with '-')"
+      fi
+      MODE="explicit"
+      shift
+    elif [[ "$HARNESS_ARG" == "all" ]]; then
+      MODE="all"
+    else
+      MODE="latest"
+    fi
+  fi
+  if [[ "${#}" -gt 0 ]]; then
+    die "Too many arguments after --update (usage: --update [<harness> [<version>]])"
+  fi
 elif [[ "${#}" -ge 1 ]]; then
   HARNESS_ARG="$1"
   shift
@@ -126,6 +164,24 @@ for f in "$HARNESS_DIR"/*.sh; do
   files+=("$f")
 done
 
+# Validate harness/version before any network fetch or file edit
+if [[ "$MODE" == "latest" || "$MODE" == "explicit" ]]; then
+  # "all" is not a single harness; explicit version with it is invalid
+  if [[ "$MODE" == "explicit" && "$HARNESS_ARG" == "all" ]]; then
+    die "cannot bump 'all' to an explicit version"
+  fi
+  known=""
+  for hn in "${harnesses[@]}"; do
+    if [[ "$hn" == "$HARNESS_ARG" ]]; then
+      known=1
+    fi
+  done
+  [[ -n "$known" ]] || die "Unknown harness: $HARNESS_ARG. Valid: ${harnesses[*]}"
+fi
+if [[ "$MODE" == "explicit" ]]; then
+  validate_version "$VERSION_ARG"
+fi
+
 # Check or bump
 if [[ "$MODE" == "check" ]]; then
   outdated=0
@@ -144,7 +200,6 @@ if [[ "$MODE" == "check" ]]; then
   if [[ $outdated -ne 0 ]]; then
     exit 1
   fi
-export -f validate_version bump_harness_file pinned_version get_latest_version
 else
   # Bump one or all
   if [[ "$MODE" == "explicit" ]]; then
@@ -161,10 +216,15 @@ else
     bump_harness_file "$HARNESS_DIR/${HARNESS_ARG}.sh" "$latest"
     echo "Bumped ${HARNESS_ARG} to $latest"
   elif [[ "$MODE" == "all" ]]; then
+    # Two-phase: fetch and validate every latest version before editing any file
+    declare -A latest_map=()
     for hn in "${harnesses[@]}"; do
-      latest="$(get_latest_version "$hn")"
-      bump_harness_file "$HARNESS_DIR/${hn}.sh" "$latest"
-      echo "Bumped $hn to $latest"
+      latest_map["$hn"]="$(get_latest_version "$hn")"
+      validate_version "${latest_map[$hn]}"
+    done
+    for hn in "${harnesses[@]}"; do
+      bump_harness_file "$HARNESS_DIR/${hn}.sh" "${latest_map[$hn]}"
+      echo "Bumped $hn to ${latest_map[$hn]}"
     done
   fi
   echo "Rebuild images: REINSTALL_HARNESS=1 agent-sandbox"

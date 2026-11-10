@@ -96,7 +96,7 @@ Manual mode (no harness): `agent-sandbox:base-tools`, `agent-sandbox:<stack>-man
 
 Installed ad hoc via `base/harness/<name>.sh`. Only the selected harness is in the image.
 
-Version pins live in `base/harness/<name>.sh`. Check: `./scripts/bump-harness.sh` (or `mise run bump-harness`); bump: `./scripts/bump-harness.sh all` / `./scripts/bump-harness.sh <name> [version]`. After a bump, rebuild with `REINSTALL_HARNESS=1 agent-sandbox` (other stacks rebuild lazily on next run).
+Version pins live in `base/harness/<name>.sh`. Check (no changes): `mise run bump-harness` (or `-- --check`); update all: `mise run bump-harness -- --update`; update one: `mise run bump-harness -- --update <name> [version]`. After an update, rebuild with `REINSTALL_HARNESS=1 agent-sandbox` (other stacks rebuild lazily on next run).
 
 | Harness | Command | State synced (with `HARNESS_STATE=1`) |
 |---------|---------|--------------------------------------|

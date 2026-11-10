@@ -184,7 +184,7 @@ Ask yourself:
 | Validate config | `mise run check` (or `agent-sandbox --check`) |
 | Lint only | `mise run lint` (or `./scripts/lint.sh`) |
 | Build tests only | `mise run test-build` (or `./scripts/test-build.sh`) |
-| Bump harness versions | `./scripts/bump-harness.sh all` (check: no args) |
+| Bump harness versions | `mise run bump-harness -- --update` (check: `mise run bump-harness` or `-- --check`) |
 | Build base-tools | `mise run build` |
 | Clean images | `mise run clean` |
 | Force rebuild | `REBUILD=1 agent-sandbox` |

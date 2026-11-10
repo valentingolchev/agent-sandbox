@@ -46,7 +46,7 @@ description = "Build base-tools image (uses $CONTAINER_RUNTIME, default: podman)
 run = "${CONTAINER_RUNTIME:-podman} build --build-arg UID=$(id -u) --build-arg GID=$(id -g) -t localhost/agent-sandbox:base-tools -f base/Containerfile base/"
 
 [tasks."bump-harness"]
-description = "Check/bump harness version pins (base/harness/*.sh)"
+description = "Check/update pinned harness versions (args after -- forwarded)"
 run = "./scripts/bump-harness.sh"
 
 [tasks.clean]
