@@ -10,9 +10,14 @@
 # This keeps the attack surface minimal (only the selected harness is installed)
 # while sharing layers via container image caching.
 #
+# With extra tools selected (TOOLS_SUFFIX set by lib/extra_tools.sh), a
+# content-hashed layer is applied once on top of the final image:
+#   ... → <final>-tools-<hash>
+#
 # Expects: SANDBOX_ROOT, REBUILD (optional), die() from common.sh,
-#          RUNTIME, image_exists from runtime.sh
-# Provides: STACKS (array), STACK_PARENT (assoc array), context_for, ensure_image, remove_harness_images, reinstall_harness
+#          RUNTIME, image_exists from runtime.sh,
+#          TOOLS_SUFFIX/TOOL_FILES from extra_tools.sh (optional)
+# Provides: STACKS (array), STACK_PARENT (assoc array), context_for, ensure_image, remove_harness_images, reinstall_harness, image_name_for, FINAL_IMAGE
 
 declare -A STACK_PARENT=()
 STACKS=()
@@ -165,7 +170,9 @@ build_stack_with_harness() {
 }
 
 # Remove the harness layer image and every <stack>-<harness> image, so the
-# next ensure_image rebuilds them with the current harness script.
+# next ensure_image rebuilds them with the current harness script. Also
+# removes derived extra-tools layers (tags ending in -tools-<hash>; harness
+# names are never hex hashes, so base-tools* tags don't match).
 remove_harness_images() {
     local harness="$1" stack tag
     if image_exists "base-tools-${harness}"; then
@@ -180,6 +187,12 @@ remove_harness_images() {
             "$RUNTIME" rmi -f "$IMAGE_PREFIX:$tag" >/dev/null 2>&1 || true
         fi
     done
+    while IFS= read -r tag; do
+        [ -n "$tag" ] || continue
+        echo "Removing $tag ..."
+        "$RUNTIME" rmi -f "$tag" >/dev/null 2>&1 || true
+    done < <("$RUNTIME" images --format '{{.Repository}}:{{.Tag}}' 2>/dev/null |
+        grep "^$IMAGE_PREFIX:.*-tools-[0-9a-f]\{8,12\}$" || true)
 }
 
 # Reinstall a harness: drop all harness images, rebuild the chain for the
@@ -197,9 +210,10 @@ reinstall_harness() {
     echo "Harness '$harness' reinstalled for stack '$stack'."
 }
 
-# Ensure a composed image exists for the given stack + harness.
-# Builds the full chain: base-tools → base-tools-<harness> → <stack1>-<harness> → ...
-ensure_image() {
+# Build the image chain without the extra-tools layer; sets FINAL_IMAGE to
+# the resulting plain image tag. Recursion for child stacks stays inside
+# this function so the tools layer is applied exactly once (see ensure_image).
+ensure_image_chain() {
     local stack="$1"
     local harness="$2"
 
@@ -208,6 +222,9 @@ ensure_image() {
         ensure_base_tools
         if [ "$harness" != "manual" ]; then
             build_base_with_harness "$harness"
+            FINAL_IMAGE="$IMAGE_PREFIX:base-tools-${harness}"
+        else
+            FINAL_IMAGE="$IMAGE_PREFIX:base-tools"
         fi
         return 0
     fi
@@ -226,30 +243,71 @@ ensure_image() {
             parent_image="$IMAGE_PREFIX:base-tools-${harness}"
         fi
     else
-        # Child stack: build parent chain first
-        ensure_image "$parent" "$harness"
-        parent_image="$IMAGE_PREFIX:${parent}-${harness}"
+        # Child stack: build parent chain first (no tools layer on parents —
+        # it is applied once, on top of the final image)
+        ensure_image_chain "$parent" "$harness"
+        parent_image="$FINAL_IMAGE"
     fi
 
     build_stack_with_harness "$stack" "$harness" "$parent_image"
+    FINAL_IMAGE="$IMAGE_PREFIX:${stack}-${harness}"
 }
 
-# Get the image name for a stack + harness combination.
+# Ensure a composed image exists for the given stack + harness, with the
+# extra-tools layer (content-hashed tag) applied once on top when selected.
+# Builds the full chain: base-tools → base-tools-<harness> → <stack1>-<harness> → ...
+ensure_image() {
+    local stack="$1"
+    local harness="$2"
+
+    ensure_image_chain "$stack" "$harness"
+
+    if [ -n "${TOOLS_SUFFIX:-}" ]; then
+        local tools_tag="${FINAL_IMAGE}-tools-${TOOLS_SUFFIX}"
+        build_extra_tools_layer "$FINAL_IMAGE" "$tools_tag" "$SANDBOX_ROOT/base"
+        FINAL_IMAGE="$tools_tag"
+    fi
+
+    # Prune stale extra-tools layers: an edited script or changed selection
+    # yields a new TOOLS_SUFFIX, orphaning the old <final>-tools-<hash> tag.
+    # Remove every -tools-<hash> image for this prefix except the current
+    # final tag. Simple and safe: the hash-only suffix keeps base-tools* and
+    # <stack>-<harness> tags unmatched, the current tag is skipped, rmi
+    # failures are ignored (the image may be in use), and a missing runtime
+    # only skips the prune (the listing is best-effort).
+    local stale
+    while IFS= read -r stale; do
+        [ -n "$stale" ] || continue
+        if [ "$stale" = "$FINAL_IMAGE" ]; then continue; fi
+        echo "Removing stale $stale ..."
+        "$RUNTIME" rmi -f "$stale" >/dev/null 2>&1 || true
+    done < <("$RUNTIME" images --format '{{.Repository}}:{{.Tag}}' 2>/dev/null |
+        grep -E "^$IMAGE_PREFIX:.*-tools-[0-9a-f]{8,12}$" || true)
+}
+
+# Get the image name for a stack + harness combination (including the
+# extra-tools suffix when TOOLS_SUFFIX is set — must match ensure_image).
 image_name_for() {
     local stack="$1"
     local harness="$2"
+    local base
     if [ "$harness" = "manual" ]; then
         if [ "$stack" = "base" ]; then
-            echo "$IMAGE_PREFIX:base-tools"
+            base="$IMAGE_PREFIX:base-tools"
         else
-            echo "$IMAGE_PREFIX:${stack}-manual"
+            base="$IMAGE_PREFIX:${stack}-manual"
         fi
     else
         if [ "$stack" = "base" ]; then
-            echo "$IMAGE_PREFIX:base-tools-${harness}"
+            base="$IMAGE_PREFIX:base-tools-${harness}"
         else
-            echo "$IMAGE_PREFIX:${stack}-${harness}"
+            base="$IMAGE_PREFIX:${stack}-${harness}"
         fi
+    fi
+    if [ -n "${TOOLS_SUFFIX:-}" ]; then
+        echo "${base}-tools-${TOOLS_SUFFIX}"
+    else
+        echo "$base"
     fi
 }
 

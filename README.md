@@ -49,6 +49,7 @@ persist_caches = false
 harness_state = false
 harness_state_action = prompt
 # init_script = ~/path/to/init.sh   # runs inside container before harness
+# extra_tools = name1 name2         # base/tools/*.sh installed at build
 
 [/path/to/agent-sandbox]
 stack = base
@@ -72,6 +73,7 @@ init_script = /path/to/agent-sandbox/init.sh   # mise install on container start
 | `SESSION_LOG` | Audit log file path |
 | `MEMORY`, `CPUS` | Resource limits (default 8g / 4) |
 | `ENV_KEYS` | Extra env vars to forward (space-separated) |
+| `EXTRA_TOOLS` | Extra tool names from `base/tools/` to install at build (space-separated) |
 | `AGENT_SANDBOX_CONFIG` | Alternative config file path |
 
 ## Stacks
@@ -115,6 +117,22 @@ OpenCode scratch/cache is ephemeral: the container mounts tmpfs `/tmp/opencode`
 (override with `ENV_KEYS`). Only config and `~/.local/share/opencode/` persist via
 `HARNESS_STATE=1`.
 
+## Extra tools
+
+Repo-provided install scripts in `base/tools/*.sh`, layered onto the image at
+build time. Select with the `extra_tools` config key or `EXTRA_TOOLS` env var
+(space-separated script basenames).
+
+- Scripts land in `/opt/agent-sandbox/extra-tools/` and run as root during
+  build only (image drops to `USER agent` afterwards); a failing script fails
+  the build
+- Tags get a content hash suffix (`-tools-<hash>`): editing a script or the
+  selection rebuilds the layer; `REBUILD=1` forces it
+- Rules: `set -euo pipefail`, pin versions, never `curl | sh`, no secrets —
+  see `base/tools/README.md`
+- Security: repo-only scripts, name-validated (`[a-z0-9][a-z0-9_-]*`),
+  build-time only — nothing is fetched at container runtime
+
 ## Security
 
 - Only the selected harness is installed (smaller attack surface)
@@ -129,6 +147,8 @@ OpenCode scratch/cache is ephemeral: the container mounts tmpfs `/tmp/opencode`
   a security boundary.
 - Package versions pinned in all Containerfiles
 - Keyring secrets with newlines rejected (env-file injection prevention)
+- Extra tools: repo scripts only, name-validated, run at build time; lint
+  bans pipe-to-shell downloads (`curl | sh`)
 - Config file created with mode 600; snapshot dirs mode 700
 
 ## Troubleshooting

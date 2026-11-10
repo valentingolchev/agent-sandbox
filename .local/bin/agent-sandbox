@@ -21,6 +21,7 @@
 #   prompts.sh      interactive pickers
 #   credentials.sh  env var / keyring propagation (active harness only)
 #   state.sh        harness state snapshot management
+#   extra_tools.sh  repo-provided build-time tool installers (base/tools/)
 #
 # Env vars:
 #   CONTAINER_RUNTIME  podman | docker        (overrides auto-detection)
@@ -35,6 +36,8 @@
 #   HARNESS_STATE_ACTION=keep|reset|discard|prompt   snapshot action (default: prompt)
 #   MEMORY, CPUS   resource limits (default 8g / 4)
 #   ENV_KEYS       extra env var names to pass into the container
+#   EXTRA_TOOLS    space-separated tool names from base/tools/ to install
+#                  into the image at build time (see base/tools/README.md)
 #   SESSION_LOG    append session metadata to this file (audit log)
 #   AGENT_SANDBOX_CONFIG   alternative config file path
 set -euo pipefail
@@ -80,6 +83,7 @@ Environment variables:
   HARNESS_STATE_ACTION   keep|reset|discard|prompt (default: prompt)
   MEMORY, CPUS           resource limits (default 8g / 4)
   ENV_KEYS               extra env var names to pass into container
+  EXTRA_TOOLS            space-separated tool names from base/tools/ (installed at build)
   SESSION_LOG            append session metadata to this file (audit log)
   AGENT_SANDBOX_CONFIG   alternative config file path
 
@@ -103,6 +107,7 @@ source "$SANDBOX_ROOT/lib/stacks.sh"
 source "$SANDBOX_ROOT/lib/prompts.sh"
 source "$SANDBOX_ROOT/lib/credentials.sh"
 source "$SANDBOX_ROOT/lib/state.sh"
+source "$SANDBOX_ROOT/lib/extra_tools.sh"
 source "$SANDBOX_ROOT/lib/validate.sh"
 
 # P1: Scan workspace for potential secrets before running the container.
@@ -122,6 +127,9 @@ scan_workspace_secrets() {
 }
 
 load_config
+
+# Extra tools: resolve selection (env var > config) before validation/builds.
+resolve_extra_tools "${EXTRA_TOOLS:-${CONFIG[extra_tools]:-}}"
 
 # --check: validate config and exit
 if [ "$CHECK_ONLY" -eq 1 ]; then
@@ -275,6 +283,7 @@ if [ -n "$SESSION_LOG_FILE" ]; then
         echo "Runtime:   $RUNTIME"
         echo "Network:   $(is_true "${NO_NETWORK:-${CONFIG[no_network]:-}}" && echo 'disabled' || echo 'enabled')"
         echo "State:     $(is_true "${HARNESS_STATE:-${CONFIG[harness_state]:-false}}" && echo 'enabled' || echo 'disabled')"
+        echo "Extra tools: ${TOOLS_SEL[*]:-none}"
         echo "==============================="
         echo
     } >> "$SESSION_LOG_FILE"

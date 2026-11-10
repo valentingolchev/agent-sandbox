@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # validate.sh — validate agent-sandbox config file.
-# Provides: validate_config() — call after sourcing common.sh, config.sh, stacks.sh, prompts.sh
+# Provides: validate_config() — call after sourcing common.sh, config.sh, stacks.sh, prompts.sh, extra_tools.sh
 
 err()  { echo "  ✗ $*" >&2; VALIDATE_ERRORS=$((VALIDATE_ERRORS+1)); }
 warn() { echo "  ! $*" >&2; VALIDATE_WARNINGS=$((VALIDATE_WARNINGS+1)); }
 ok()   { echo "  ✓ $*"; }
 
 # Valid keys
-VALID_KEYS="stack harness memory cpus no_network persist_caches env_keys harness_state harness_state_action runtime init_script session_log reinstall_harness"
+VALID_KEYS="stack harness memory cpus no_network persist_caches env_keys harness_state harness_state_action runtime init_script session_log reinstall_harness extra_tools"
 
 # Valid harness_state_action values
 VALID_ACTIONS="keep reset discard prompt"
@@ -147,6 +147,18 @@ validate_config() {
                 ;;
             env_keys)
                 # Space-separated list, just check it's not empty if set
+                ;;
+            extra_tools)
+                # Space-separated tool names: each must be a valid name and
+                # match a discovered base/tools/*.sh script.
+                local tool
+                for tool in $value; do
+                    if ! is_valid_tool_name "$tool"; then
+                        err "extra_tools: invalid tool name '$tool' (line $line_num). Expected: [a-z0-9][a-z0-9_-]{0,63}"
+                    elif [[ " ${EXTRA_TOOLS_ALL[*]:-} " != *" $tool "* ]]; then
+                        err "extra_tools: unknown tool '$tool' (line $line_num). Known: ${EXTRA_TOOLS_ALL[*]:-none} (scripts in base/tools/)"
+                    fi
+                done
                 ;;
         esac
     done < "$config_file"

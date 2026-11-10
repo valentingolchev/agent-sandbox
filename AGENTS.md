@@ -89,6 +89,9 @@ set -euo pipefail
 - **Never `curl | sh`** in Containerfiles — download to file first, then execute
 - **Base images:** Prefer digest-pinned (`@sha256:...`) over tag-pinned
 - **Harness scripts:** Version-pinned with comment to check security advisories
+- **Extra-tools scripts (`base/tools/*.sh`):** version-pinned, no `curl | sh`,
+  no secrets — run as root at image build only; tool names validated against
+  the directory, lint rejects pipe-to-shell downloads
 - **mise tools:** Pin versions in `mise.toml` `[tools]`
 
 ### Host State Protection
