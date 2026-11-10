@@ -67,7 +67,7 @@ set -euo pipefail
 - Non-root user (`USER agent` in all Containerfiles)
 - PID limit (`--pids-limit 512`)
 - Memory/CPU limits (defaults 8g/4)
-- tmpfs for `/tmp` and `/home/agent` with size caps
+- tmpfs for `/tmp`, `/home/agent`, and `/tmp/opencode` (opencode scratch) with size caps
 - `--no-hosts`, `--init`, `--rm`, `--pull=never`
 - **Never mount the Docker socket** — docker-cli is present but daemonless
 - **Never mount host `/`, `/etc`, `/var`** into the container

@@ -110,10 +110,16 @@ Host config wins on conflict. State accumulates across runs. Host state is never
 modified. Snapshots: `~/.local/share/agent-sandbox/state/<harness>/`.
 First run prompts `[K]eep/[R]eset/[D]iscard`; set `HARNESS_STATE_ACTION` to skip.
 
+OpenCode scratch/cache is ephemeral: the container mounts tmpfs `/tmp/opencode`
+(1g, mode 1777) and sets `TMPDIR=/tmp/opencode` and `XDG_CACHE_HOME=/tmp/opencode/cache`
+(override with `ENV_KEYS`). Only config and `~/.local/share/opencode/` persist via
+`HARNESS_STATE=1`.
+
 ## Security
 
 - Only the selected harness is installed (smaller attack surface)
 - Read-only root, all caps dropped, `no-new-privileges`, pids limit 512
+- Container tmpfs only: `/tmp` 2g, `/home/agent` 1g, `/tmp/opencode` 1g (opencode), mode 1777; host `/tmp` is never mounted
 - SELinux label disabled on SELinux hosts
 - API keys via `--env-file` (temp file deleted on exit), scoped to active harness only
 - Harness state: host never modified (snapshot copy-on-write)

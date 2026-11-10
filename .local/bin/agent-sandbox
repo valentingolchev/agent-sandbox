@@ -235,6 +235,18 @@ if is_true "${HARNESS_STATE:-${CONFIG[harness_state]:-false}}"; then
     setup_harness_state "$HARNESS_NAME" "$SNAPSHOT_DIR" "$STATE_ACTION"
 fi
 
+# OpenCode scratch on container-local tmpfs: fast, writable, capped.
+# Only cache/tmp move to tmpfs; data/db/logs stay under
+# ~/.local/share/opencode (persistent via the state snapshot mounts).
+OPENCODE_ARGS=()
+if [[ "$HARNESS_NAME" == "opencode" ]]; then
+    OPENCODE_ARGS+=(
+        --tmpfs /tmp/opencode:rw,size=1g,mode=1777
+        -e TMPDIR=/tmp/opencode
+        -e XDG_CACHE_HOME=/tmp/opencode/cache
+    )
+fi
+
 # -it needs a TTY on both ends; scripted runs fall back to -i.
 TTY_ARGS=(-i)
 [[ -t 0 && -t 1 ]] && TTY_ARGS=(-it)
@@ -277,7 +289,7 @@ fi
     --init \
     --no-hosts \
     --read-only \
-    --tmpfs /tmp:rw,size=2g \
+    --tmpfs /tmp:rw,size=2g,mode=1777 \
     --tmpfs /home/agent:rw,size=1g,mode=1777 \
     --cap-drop=ALL \
     --security-opt no-new-privileges \
@@ -286,6 +298,7 @@ fi
     --memory "${MEMORY:-${CONFIG[memory]:-8g}}" \
     --cpus "${CPUS:-${CONFIG[cpus]:-4}}" \
     "${NET_ARGS[@]}" \
+    "${OPENCODE_ARGS[@]+"${OPENCODE_ARGS[@]}"}" \
     "${ENV_ARGS[@]}" \
     "${CACHE_ARGS[@]}" \
     "${STATE_ARGS[@]}" \
