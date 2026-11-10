@@ -45,6 +45,10 @@ run = "./scripts/run.sh"
 description = "Build base-tools image (uses $CONTAINER_RUNTIME, default: podman)"
 run = "${CONTAINER_RUNTIME:-podman} build --build-arg UID=$(id -u) --build-arg GID=$(id -g) -t localhost/agent-sandbox:base-tools -f base/Containerfile base/"
 
+[tasks."bump-harness"]
+description = "Check/bump harness version pins (base/harness/*.sh)"
+run = "./scripts/bump-harness.sh"
+
 [tasks.clean]
 description = "Remove all agent-sandbox images"
 run = "R=${CONTAINER_RUNTIME:-podman}; $R rmi -f $($R images -q localhost/agent-sandbox) 2>/dev/null || true"

@@ -184,10 +184,12 @@ Ask yourself:
 | Validate config | `mise run check` (or `agent-sandbox --check`) |
 | Lint only | `mise run lint` (or `./scripts/lint.sh`) |
 | Build tests only | `mise run test-build` (or `./scripts/test-build.sh`) |
+| Bump harness versions | `./scripts/bump-harness.sh all` (check: no args) |
 | Build base-tools | `mise run build` |
 | Clean images | `mise run clean` |
 | Force rebuild | `REBUILD=1 agent-sandbox` |
 | No network | `NO_NETWORK=1 agent-sandbox` |
+| Reinstall harness images | `REINSTALL_HARNESS=1 agent-sandbox` |
 | Specific harness | `HARNESS=claude agent-sandbox` |
 | Enable state | `HARNESS_STATE=1 agent-sandbox` |
 | Audit log | `SESSION_LOG=~/audit.log agent-sandbox` |
