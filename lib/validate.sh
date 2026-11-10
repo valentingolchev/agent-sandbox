@@ -7,7 +7,7 @@ warn() { echo "  ! $*" >&2; VALIDATE_WARNINGS=$((VALIDATE_WARNINGS+1)); }
 ok()   { echo "  ✓ $*"; }
 
 # Valid keys
-VALID_KEYS="stack harness memory cpus no_network persist_caches env_keys harness_state harness_state_action runtime init_script session_log"
+VALID_KEYS="stack harness memory cpus no_network persist_caches env_keys harness_state harness_state_action runtime init_script session_log reinstall_harness"
 
 # Valid harness_state_action values
 VALID_ACTIONS="keep reset discard prompt"
@@ -110,7 +110,7 @@ validate_config() {
                     err "cpus: invalid format '$value' (line $line_num). Expected: 4, 2.5, etc."
                 fi
                 ;;
-            no_network|persist_caches|harness_state)
+            no_network|persist_caches|harness_state|reinstall_harness)
                 case "$(printf '%s' "$value" | tr '[:upper:]' '[:lower:]')" in
                     ""|1|0|true|false|yes|no|on|off) ;;
                     *) err "$key: invalid boolean '$value' (line $line_num). Expected: true/false/1/0" ;;

@@ -12,7 +12,7 @@
 #
 # Expects: SANDBOX_ROOT, REBUILD (optional), die() from common.sh,
 #          RUNTIME, image_exists from runtime.sh
-# Provides: STACKS (array), STACK_PARENT (assoc array), context_for, ensure_image
+# Provides: STACKS (array), STACK_PARENT (assoc array), context_for, ensure_image, remove_harness_images, reinstall_harness
 
 declare -A STACK_PARENT=()
 STACKS=()
@@ -162,6 +162,39 @@ build_stack_with_harness() {
         -t "$image" \
         -f "$context/Containerfile" \
         "$context"
+}
+
+# Remove the harness layer image and every <stack>-<harness> image, so the
+# next ensure_image rebuilds them with the current harness script.
+remove_harness_images() {
+    local harness="$1" stack tag
+    if image_exists "base-tools-${harness}"; then
+        echo "Removing $IMAGE_PREFIX:base-tools-${harness} ..."
+        "$RUNTIME" rmi -f "$IMAGE_PREFIX:base-tools-${harness}" >/dev/null 2>&1 || true
+    fi
+    for stack in "${STACKS[@]}"; do
+        [ "$stack" = "base" ] && continue
+        tag="${stack}-${harness}"
+        if image_exists "$tag"; then
+            echo "Removing $IMAGE_PREFIX:$tag ..."
+            "$RUNTIME" rmi -f "$IMAGE_PREFIX:$tag" >/dev/null 2>&1 || true
+        fi
+    done
+}
+
+# Reinstall a harness: drop all harness images, rebuild the chain for the
+# selected stack via ensure_image, then return (caller exits — no session).
+reinstall_harness() {
+    local stack="$1" harness="$2"
+    if [ "$harness" = "manual" ]; then
+        die "manual harness has no image to reinstall"
+    fi
+    if [ ! -f "$SANDBOX_ROOT/base/harness/${harness}.sh" ]; then
+        die "No harness script for '$harness'"
+    fi
+    remove_harness_images "$harness"
+    ensure_image "$stack" "$harness"
+    echo "Harness '$harness' reinstalled for stack '$stack'."
 }
 
 # Ensure a composed image exists for the given stack + harness.

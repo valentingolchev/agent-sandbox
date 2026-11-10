@@ -27,8 +27,9 @@
 #   AGENT_IMAGE    stack tag, e.g. agent-sandbox:elixir or agent-sandbox:elixir-claude
 #                  (harness suffix optional, stripped if present)
 #   HARNESS        claude | opencode | vibe | pi | manual  (skips prompt)
-#   REBUILD=1      rebuild the image chain first
-#   NO_NETWORK=1   no networking at all
+#   REBUILD=1              rebuild the image chain first
+#   REINSTALL_HARNESS=1    drop + rebuild harness images for the stack, then exit (no session)
+#   NO_NETWORK=1           no networking at all
 #   PERSIST_CACHES=1   keep tool caches across runs (named volumes)
 #   HARNESS_STATE=1    enable harness state snapshot (default: disabled)
 #   HARNESS_STATE_ACTION=keep|reset|discard|prompt   snapshot action (default: prompt)
@@ -44,14 +45,49 @@ SANDBOX_ROOT="$(cd "$(dirname "$SELF")/../.." && pwd)"
 
 # Parse flags
 CHECK_ONLY=0
+SHOW_HELP=0
 ARGS=()
 for arg in "$@"; do
     case "$arg" in
+        -h|--help) SHOW_HELP=1 ;;
         --check|--validate) CHECK_ONLY=1 ;;
+        --reinstall-harness) REINSTALL_HARNESS=1 ;;
         *) ARGS+=("$arg") ;;
     esac
 done
 set -- "${ARGS[@]}"
+
+if [ "$SHOW_HELP" -eq 1 ]; then
+    cat <<'EOF'
+Usage: agent-sandbox [options] [workspace-dir]
+
+Run an LLM coding agent inside a hardened container.
+
+Options:
+  -h, --help             Show this help and exit
+  --check                Validate config and exit
+  --reinstall-harness    Reinstall harness images for selected stack, then exit
+
+Environment variables:
+  CONTAINER_RUNTIME      podman | docker (overrides auto-detection)
+  AGENT_IMAGE            stack tag (harness suffix optional, stripped)
+  HARNESS                claude | opencode | vibe | pi | manual (skips prompt)
+  REBUILD=1              rebuild the image chain first
+  REINSTALL_HARNESS=1    Same as --reinstall-harness (no session started)
+  NO_NETWORK=1           no networking at all
+  PERSIST_CACHES=1       keep tool caches across runs (named volumes)
+  HARNESS_STATE=1        enable harness state snapshot
+  HARNESS_STATE_ACTION   keep|reset|discard|prompt (default: prompt)
+  MEMORY, CPUS           resource limits (default 8g / 4)
+  ENV_KEYS               extra env var names to pass into container
+  SESSION_LOG            append session metadata to this file (audit log)
+  AGENT_SANDBOX_CONFIG   alternative config file path
+
+Workspace defaults to current directory. Mounted at /workspace/<name> inside
+container. Config: ~/.config/agent-sandbox/config
+EOF
+    exit 0
+fi
 
 WORKSPACE_DIR="$(realpath "${1:-$PWD}")"
 WORKSPACE_NAME="$(basename "$WORKSPACE_DIR")"
@@ -109,6 +145,7 @@ fi
 validate_bool "NO_NETWORK" "${NO_NETWORK:-${CONFIG[no_network]:-}}"
 validate_bool "PERSIST_CACHES" "${PERSIST_CACHES:-${CONFIG[persist_caches]:-}}"
 validate_bool "HARNESS_STATE" "${HARNESS_STATE:-${CONFIG[harness_state]:-}}"
+validate_bool "REINSTALL_HARNESS" "${REINSTALL_HARNESS:-${CONFIG[reinstall_harness]:-}}"
 
 # Pick stack and harness before the (potentially slow) first build.
 stack_name="$(choose_stack)"
@@ -117,6 +154,12 @@ HARNESS_CMD="$(resolve_harness "$HARNESS_NAME")"
 IMAGE="$(image_name_for "$stack_name" "$HARNESS_NAME")"
 
 echo "Image: $IMAGE   Workspace: $WORKSPACE_DIR" >&2
+
+# Reinstall harness only: drop harness images, rebuild chain, exit (no session).
+if is_true "${REINSTALL_HARNESS:-${CONFIG[reinstall_harness]:-0}}"; then
+    reinstall_harness "$stack_name" "$HARNESS_NAME"
+    exit 0
+fi
 
 ensure_image "$stack_name" "$HARNESS_NAME"
 

@@ -26,11 +26,13 @@ Config: `~/.config/agent-sandbox/config` (regular file, created from
 
 ```bash
 agent-sandbox                          # interactive: pick stack + harness
+agent-sandbox --help                   # show usage
 AGENT_IMAGE=agent-sandbox:python HARNESS=opencode agent-sandbox
 agent-sandbox ~/projects/my-app        # specific workspace
 agent-sandbox --check                  # validate config and exit
 HARNESS_STATE=1 agent-sandbox          # sync host agents/skills/config
 REBUILD=1 agent-sandbox                # rebuild images
+REINSTALL_HARNESS=1 agent-sandbox      # reinstall harness images, then exit
 ```
 
 ## Configuration
@@ -62,6 +64,7 @@ init_script = /path/to/agent-sandbox/init.sh   # mise install on container start
 | `HARNESS` | `claude`, `opencode`, `vibe`, `pi`, `manual` (skips prompt) |
 | `CONTAINER_RUNTIME` | `podman` or `docker` (overrides auto-detection) |
 | `REBUILD=1` | Rebuild images (busts cache) |
+| `REINSTALL_HARNESS=1` | Drop + rebuild harness images for selected stack, then exit (no session) |
 | `NO_NETWORK=1` | No networking |
 | `PERSIST_CACHES=1` | Keep tool caches across runs (named volumes) |
 | `HARNESS_STATE=1` | Sync host agents/skills/config into container |
