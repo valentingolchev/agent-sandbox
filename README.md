@@ -84,7 +84,7 @@ Manual mode (no harness): `agent-sandbox:base-tools`, `agent-sandbox:<stack>-man
 
 | Stack | Description |
 |-------|-------------|
-| `base` | Core tooling, no language stack |
+| `base` | Core tooling + Nix (single-user, flakes enabled), no language stack |
 | `python` | Python development |
 | `node` | Node.js + pnpm |
 | `rust` | Rust (rustup, system-wide) |

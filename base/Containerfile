@@ -42,8 +42,8 @@ COPY --from=ghcr.io/astral-sh/uv:0.5.4 /uv /uvx /usr/local/bin/
 # /opt/uv-home/.local/bin is where uv-installed tools (like vibe) land.
 # mise shims so `mise install`ed tools resolve without `mise activate`
 # (shims are created on demand under the home dir, persisted via the
-# PERSIST_CACHES ~/.local volume).
-ENV PATH=/opt/uv-home/.local/bin:/home/agent/.local/share/mise/shims:$PATH
+# PERSIST_CACHES ~/.local volume). Nix default profile bin.
+ENV PATH=/nix/var/nix/profiles/default/bin:/opt/uv-home/.local/bin:/home/agent/.local/share/mise/shims:$PATH
 
 # Non-root user. Pass host UID/GID so workspace file ownership maps cleanly:
 #   podman build --build-arg UID=$(id -u) --build-arg GID=$(id -g) ...
@@ -59,6 +59,18 @@ RUN groupadd -g ${GID} agent && \
 # the XDG parent dirs agent-owned above is still useful: podman's tmpfs
 # copy-up preserves the image's directory ownership, so the agent user
 # can write into ~/.local/share, ~/.config, etc. without root-owned parents.
+
+# Nix package manager, single-user (--no-daemon): no daemon runs in the
+# sandbox; nix commands act on the store directly as the invoking user.
+# Installed as root (needs /nix at the filesystem root), then /nix is
+# chowned to the agent user so single-user nix works at runtime.
+# Version pinned: 2.35.6 (update deliberately)
+RUN curl -fsSL https://releases.nixos.org/nix/nix-2.35.6/install -o /tmp/nix-install && \
+    sh /tmp/nix-install --no-daemon --yes && \
+    rm /tmp/nix-install && \
+    mkdir -p /etc/nix && \
+    printf 'experimental-features = nix-command flakes\n' > /etc/nix/nix.conf && \
+    chown -R agent:agent /nix
 
 ENV PYTHONUNBUFFERED=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
