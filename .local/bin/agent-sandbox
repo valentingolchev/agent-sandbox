@@ -291,6 +291,10 @@ fi
 
 # ---- run ----
 
+# /nix must be writable for nix store/db writes (rootfs is read-only).
+# Named volume, not tmpfs: docker --tmpfs does not copy up image content,
+# podman does — a volume works on both and persists the store across runs.
+
 "$RUNTIME" run "${TTY_ARGS[@]}" --rm \
     --pull=never \
     --name "agent-sandbox-$$" \
@@ -300,6 +304,7 @@ fi
     --read-only \
     --tmpfs /tmp:rw,size=2g,mode=1777 \
     --tmpfs /home/agent:rw,size=1g,mode=1777 \
+    -v agent-nix:/nix \
     --cap-drop=ALL \
     --security-opt no-new-privileges \
     "${SECURITY_OPTS[@]}" \

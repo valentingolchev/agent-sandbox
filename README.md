@@ -138,6 +138,7 @@ build time. Select with the `extra_tools` config key or `EXTRA_TOOLS` env var
 - Only the selected harness is installed (smaller attack surface)
 - Read-only root, all caps dropped, `no-new-privileges`, pids limit 512
 - Container tmpfs only: `/tmp` 2g, `/home/agent` 1g, `/tmp/opencode` 1g (opencode), mode 1777; host `/tmp` is never mounted
+- Nix store `/nix` on named volume `agent-nix` (rootfs is read-only; volume populates from image on first use, works on podman and docker)
 - SELinux label disabled on SELinux hosts
 - API keys via `--env-file` (temp file deleted on exit), scoped to active harness only
 - Harness state: host never modified (snapshot copy-on-write)
